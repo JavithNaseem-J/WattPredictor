@@ -1,0 +1,14 @@
+artifact_uri: file:///F:/WattPredictor/mlruns/141997247217478997/1a5265a10f904d6f9ec032b05dba44c5/artifacts
+end_time: 1751882476417
+entry_point_name: ''
+experiment_id: '141997247217478997'
+lifecycle_stage: active
+run_id: 1a5265a10f904d6f9ec032b05dba44c5
+run_name: LightGBM_final
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1751882476317
+status: 3
+tags: []
+user_id: Javith Naseem

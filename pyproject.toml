@@ -1,18 +1,17 @@
 [tool.poetry]
-name = "electricity-demand-predictor"
+name = "WattPredictor"
 version = "0.1.0"
 description = "Electricity demand forecasting ML project"
 authors = ["JavithNaseem-J <javithnaseem.j@gmail.com>"]
-packages = [{ include = "src" }]
+packages = [{ include = "WattPredictor", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.12"
+python = ">=3.10,<3.11"
 pandas = "*"
 numpy = "*"
 scikit-learn = "*"
 matplotlib = "*"
 seaborn = "*"
-catboost = "*"
 lightgbm = "*"
 mlflow = "*"
 dvc = "*"
@@ -35,6 +34,9 @@ ipywidgets = "*"
 boto3 = "*"
 imblearn = "*"
 uvicorn = "*"
+openmeteo_requests = "*"
+requests_cache = "*"
+retry_requests = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"

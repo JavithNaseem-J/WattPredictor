@@ -22,7 +22,7 @@ class DataTransformation:
         try:
             with open(self.config.status_file, 'r') as f:
                 status_data = json.load(f)
-            validation_status = status_data.get("Validation_status", False)
+            validation_status = status_data.get("validation_status", False)
             logger.info(f"Data validation status: {validation_status}")
             return validation_status
         except json.JSONDecodeError as e:

@@ -1,8 +1,10 @@
-from WattPredictor import logger
-import pandas as pd
+import os
 import json
-from WattPredictor.utils.helpers import create_directories
+import pandas as pd
+from WattPredictor import logger
 from WattPredictor.entity.config_entity import DataValidationConfig
+from WattPredictor.utils.helpers import create_directories
+from WattPredictor.utils.exception import CustomException
 
 
 
@@ -54,7 +56,7 @@ class DataValidation:
             
         is_valid = all(validation_results.values())
         
-        create_directories([(self.config.status_file)])
+        create_directories([os.path.dirname(self.config.status_file)])
         
         for check, result in validation_results.items():
             logger.info(f"{check}: {'PASSED' if result else 'FAILED'}")

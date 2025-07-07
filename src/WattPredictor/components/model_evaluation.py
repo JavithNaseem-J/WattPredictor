@@ -48,5 +48,5 @@ class ModelEvaluation:
                 mlflow.log_artifact(self.config.metrics_path)
                 mlflow.log_artifact(self.config.model_path)
 
-            logger.info("✅ Model evaluation complete. Metrics logged.")
+            logger.info("Model evaluation complete. Metrics logged.")
             return metrics

@@ -1,5 +1,6 @@
 from pathlib import Path
-from WattPredictor.entity.config_entity import DataIngestionConfig, DataValidationConfig, DataTransformationConfig, ModelTrainerConfig, ModelEvaluationConfig, ModelPusherConfig
+from WattPredictor.entity.config_entity import (DataIngestionConfig, DataValidationConfig, DataTransformationConfig,
+                                                 ModelTrainerConfig, ModelEvaluationConfig)
 from WattPredictor.utils.helpers import read_yaml, create_directories
 from WattPredictor.constants import CONFIG_PATH, PARAMS_PATH, SCHEMA_PATH
 
@@ -102,6 +103,8 @@ class ConfigurationManager:
 
     def get_model_evaluation_config(self) -> ModelEvaluationConfig:
         config = self.config.model_evaluation
+
+        create_directories([config.root_dir])
 
         model_evaluation_config =  ModelEvaluationConfig(
             model_path=Path(config.model_path),
