@@ -1,0 +1,46 @@
+[tool.poetry]
+name = "electricity-demand-predictor"
+version = "0.1.0"
+description = "Electricity demand forecasting ML project"
+authors = ["JavithNaseem-J <javithnaseem.j@gmail.com>"]
+packages = [{ include = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.12"
+pandas = "*"
+numpy = "*"
+scikit-learn = "*"
+matplotlib = "*"
+seaborn = "*"
+catboost = "*"
+lightgbm = "*"
+mlflow = "*"
+dvc = "*"
+dvc-s3 = "*"
+optuna = "*"
+xgboost = "*"
+tqdm = "*"
+pyyaml = "*"
+python-box = "*"
+scipy = "*"
+ensure = "*"
+joblib = "*"
+hopsworks = "*"
+python-multipart = "*"
+types-pyyaml = "*"
+dagshub = "*"
+gdown = "*"
+ydata-profiling = "*"
+ipywidgets = "*"
+boto3 = "*"
+imblearn = "*"
+uvicorn = "*"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+jupyter = "*"
+ipykernel = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

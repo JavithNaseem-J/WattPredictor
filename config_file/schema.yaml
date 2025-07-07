@@ -1,0 +1,16 @@
+columns:
+  period: object
+  subba: object
+  subba-name: object
+  parent: object
+  parent-name: object
+  value: int64
+  value-units: object
+  date: object
+  temperature_2m: float64
+  weather_code: float64
+  relative_humidity_2m: float64
+  wind_speed_10m: float64
+
+target_column:
+  name: value
