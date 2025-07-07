@@ -2,11 +2,11 @@ import os
 import sys
 import argparse
 from WattPredictor import logger
-from WattPredictor.pipelines.stage_01 import DataIngestionPipeline
-from WattPredictor.pipelines.stage_02 import DataValidationPipeline
-from WattPredictor.pipelines.stage_03 import DataTransformationPipeline
-from WattPredictor.pipelines.stage_04 import ModelTrainingPipeline
-from WattPredictor.pipelines.stage_05 import ModelEvaluationPipeline
+from WattPredictor.pipeline.stage01_ingestion import DataIngestionPipeline
+from WattPredictor.pipeline.stage02_validation import DataValidationPipeline
+from WattPredictor.pipeline.stage03_transformation import DataTransformationPipeline
+from WattPredictor.pipeline.stage04_trainer import ModelTrainingPipeline
+from WattPredictor.pipeline.stage05_evaluation import ModelEvaluationPipeline
 from WattPredictor.utils.exception import CustomException
 
 

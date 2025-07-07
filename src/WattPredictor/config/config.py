@@ -65,7 +65,6 @@ class ConfigurationManager:
             data_file=Path(config.data_file),
             status_file=Path(config.status_file),
             label_encoder=Path(config.label_encoder),
-            preprocessor=Path(config.preprocessor),
             x_transform=Path(config.x_transform),
             y_transform=Path(config.y_transform),
             train_features=Path(config.train_features),

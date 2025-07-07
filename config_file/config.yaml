@@ -18,7 +18,6 @@ data_transformation:
   data_file: artifacts/data_ingestion/data/elec_wx_demand.csv
   status_file: artifacts/data_validation/status.json
   label_encoder: artifacts/data_transformation/label_encoder.pkl
-  preprocessor: artifacts/data_transformation/preprocessor.pkl
   x_transform: artifacts/data_transformation/x_transform.npy
   y_transform: artifacts/data_transformation/y_transform.npy
   train_features: artifacts/data_transformation/train_features.csv
@@ -40,3 +39,8 @@ model_evaluation:
   x_transform: artifacts/data_transformation/x_transform.npy
   y_transform: artifacts/data_transformation/y_transform.npy
   metrics_path: artifacts/model_evaluation/metrics.json
+
+model_registry:
+  model_name: Condition2CureModel
+  metric_path: artifacts/model_evaluation/metrics.json
+  metric_key: mae

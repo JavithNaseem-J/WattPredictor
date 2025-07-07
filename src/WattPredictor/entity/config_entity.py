@@ -25,7 +25,6 @@ class DataTransformationConfig:
     data_file: Path
     status_file: str
     label_encoder: Path
-    preprocessor: Path
     x_transform: Path
     y_transform: Path
     train_features: Path
