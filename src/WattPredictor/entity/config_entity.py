@@ -4,8 +4,6 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class DataIngestionConfig:
     root_dir: Path
-    elec_api: str
-    wx_api: str
     elec_raw_data: Path
     wx_raw_data: Path
     data_file: Path

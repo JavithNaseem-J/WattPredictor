@@ -5,37 +5,37 @@ stages:
     deps:
     - path: config_file/config.yaml
       hash: md5
-      md5: 28b345fcb564587182a65af48f43379e
-      size: 1961
+      md5: 3f4246a1b60ed431812ed3663298d2cb
+      size: 1798
     - path: src/WattPredictor/pipeline/stage01_ingestion.py
       hash: md5
-      md5: cbf153acf79d5940c8ba040ebd55dc4e
-      size: 421
+      md5: bc05d12efd68d5f522e9b938e08e48be
+      size: 426
     outs:
-    - path: artifacts/data_ingestion
+    - path: data/processed
       hash: md5
-      md5: 07fd09124bba8e2d910757d6dec5f023.dir
-      size: 8060454
-      nfiles: 61
+      md5: b06483b3beb7f7c0fab154fc171a936f.dir
+      size: 3590056
+      nfiles: 1
   data_validation:
     cmd: python main.py --stage data_validation
     deps:
-    - path: artifacts/data_ingestion/data/elec_wx_demand.csv
-      hash: md5
-      md5: e4ab810fd22605cf176055ee82f29378
-      size: 2381828
     - path: config_file/config.yaml
       hash: md5
-      md5: 28b345fcb564587182a65af48f43379e
-      size: 1961
+      md5: 3f4246a1b60ed431812ed3663298d2cb
+      size: 1798
     - path: config_file/schema.yaml
       hash: md5
       md5: bb3fb7c3d33bc4026cc869023cbc521d
       size: 306
+    - path: data/processed/elec_wx_demand.csv
+      hash: md5
+      md5: 0fd55934d331db2628ab39ee53770f08
+      size: 3590056
     - path: src/WattPredictor/pipeline/stage02_validation.py
       hash: md5
-      md5: 6ccade0fb49368b1a605d55bc0e6c421
-      size: 440
+      md5: a6d978e715b2c5a94be55234ac4c178e
+      size: 445
     outs:
     - path: artifacts/data_validation/status.json
       hash: md5
@@ -50,11 +50,11 @@ stages:
       size: 35
     - path: config_file/config.yaml
       hash: md5
-      md5: 28b345fcb564587182a65af48f43379e
-      size: 1961
+      md5: 3f4246a1b60ed431812ed3663298d2cb
+      size: 1798
     - path: config_file/params.yaml
       hash: md5
-      md5: eaf11ac7afe0d355a43c72c17c973c1d
+      md5: ac473d6871bba7e411126b2182a60867
       size: 351
     - path: config_file/schema.yaml
       hash: md5
@@ -62,8 +62,8 @@ stages:
       size: 306
     - path: src/WattPredictor/pipeline/stage03_transformation.py
       hash: md5
-      md5: c2803298a9aabdfba3fcbfe2bf6ff710
-      size: 640
+      md5: 641ea95aa4bbd083c065472d52d7a323
+      size: 645
     outs:
     - path: artifacts/data_transformation/label_encoder.pkl
       hash: md5
@@ -79,77 +79,77 @@ stages:
       size: 25
     - path: artifacts/data_transformation/train_features.csv
       hash: md5
-      md5: e558cf4ba312d742ae53ed1252aebdef
-      size: 3762254
+      md5: 8fb25febaa0c5ce5d5941b2b713f3b6c
+      size: 7504907
     - path: artifacts/data_transformation/train_target.csv
       hash: md5
-      md5: 1a2ca96c51694c4ebc7991a45543da1a
-      size: 6380
+      md5: 17f8e946df4808fa30f26d8b25a2ad24
+      size: 12700
     - path: artifacts/data_transformation/x_transform.npy
       hash: md5
-      md5: a1e9338c740c976a98c89d5228aae18d
-      size: 4448528
+      md5: 5a96b517e28387bc7cc37dc7ea7eb3d7
+      size: 8896928
     - path: artifacts/data_transformation/y_transform.npy
       hash: md5
-      md5: 345ad0304bcb4de50cd642405cec6946
-      size: 6728
+      md5: a2496626a58934ea6cac3b84b288179a
+      size: 13328
   model_trainer:
     cmd: python main.py --stage model_training
     deps:
     - path: artifacts/data_transformation/x_transform.npy
       hash: md5
-      md5: a1e9338c740c976a98c89d5228aae18d
-      size: 4448528
+      md5: 5a96b517e28387bc7cc37dc7ea7eb3d7
+      size: 8896928
     - path: artifacts/data_transformation/y_transform.npy
       hash: md5
-      md5: 345ad0304bcb4de50cd642405cec6946
-      size: 6728
+      md5: a2496626a58934ea6cac3b84b288179a
+      size: 13328
     - path: config_file/config.yaml
       hash: md5
-      md5: 28b345fcb564587182a65af48f43379e
-      size: 1961
+      md5: 3f4246a1b60ed431812ed3663298d2cb
+      size: 1798
     - path: config_file/params.yaml
       hash: md5
-      md5: eaf11ac7afe0d355a43c72c17c973c1d
+      md5: ac473d6871bba7e411126b2182a60867
       size: 351
     - path: src/WattPredictor/pipeline/stage04_trainer.py
       hash: md5
-      md5: a9b67c28717a6dd357253d186f23bb5d
-      size: 426
+      md5: 077fb04c516715f7b6522f7629038354
+      size: 432
     outs:
     - path: artifacts/model_trainer/model.joblib
       hash: md5
-      md5: 269b14cd9e5120872f677d1ec6aba6a9
-      size: 665535
+      md5: b60c875f0a00c2cc9db094faebf6a1fb
+      size: 860281
   model_evaluation:
     cmd: python main.py --stage model_evaluation
     deps:
     - path: artifacts/data_transformation/x_transform.npy
       hash: md5
-      md5: a1e9338c740c976a98c89d5228aae18d
-      size: 4448528
+      md5: 5a96b517e28387bc7cc37dc7ea7eb3d7
+      size: 8896928
     - path: artifacts/data_transformation/y_transform.npy
       hash: md5
-      md5: 345ad0304bcb4de50cd642405cec6946
-      size: 6728
+      md5: a2496626a58934ea6cac3b84b288179a
+      size: 13328
     - path: artifacts/model_trainer/model.joblib
       hash: md5
-      md5: 269b14cd9e5120872f677d1ec6aba6a9
-      size: 665535
+      md5: b60c875f0a00c2cc9db094faebf6a1fb
+      size: 860281
     - path: config_file/config.yaml
       hash: md5
-      md5: 28b345fcb564587182a65af48f43379e
-      size: 1961
+      md5: 3f4246a1b60ed431812ed3663298d2cb
+      size: 1798
     - path: config_file/params.yaml
       hash: md5
-      md5: eaf11ac7afe0d355a43c72c17c973c1d
+      md5: ac473d6871bba7e411126b2182a60867
       size: 351
     - path: src/WattPredictor/pipeline/stage05_evaluation.py
       hash: md5
-      md5: 37ffa889fb44ee6bc8ae0c7492b28431
-      size: 454
+      md5: e947f40f090fa79226d3a1355b678dfd
+      size: 460
     outs:
     - path: artifacts/model_evaluation/metrics.json
       hash: md5
-      md5: 549ac2439e399d4aab5ab1f95a3b0fbf
-      size: 208
+      md5: 97587c00c435539802798f0e9755e2b0
+      size: 213

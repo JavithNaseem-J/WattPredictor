@@ -1,15 +1,12 @@
 dates:
   start_date: "2025-01-01"
-  end_date: "2025-02-28"
+  end_date: "2025-03-30"
 
-train_test_split:
-  test_size: 0.2
-  random_state: 42
 
 transformation:
   input_seq_len: 672
   step_size: 6
-  cutoff_date: '2025-02-15T00:00:00'
+  cutoff_date: '2025-03-05T00:00:00'
 
 model_trainer:
   scoring: neg_root_mean_squared_error

@@ -4,10 +4,10 @@ import tqdm
 import json
 import joblib
 import numpy as np
-from WattPredictor import logger
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
+from WattPredictor import logger
 from sklearn.preprocessing import LabelEncoder
 from WattPredictor.entity.config_entity import DataTransformationConfig
 from WattPredictor.utils.helpers import create_directories, save_bin, load_json
@@ -145,21 +145,17 @@ class DataTransformation:
 
             logger.info("Validation PASSED. Proceeding with feature transformation...")
 
-            # Transform to supervised format
             train_x, train_y = self.transform_ts_data_into_features_and_target(train_df)
             test_x, test_y = self.transform_ts_data_into_features_and_target(test_df)
 
-            # Drop 'date' before saving as .npy
             train_x_npy = train_x.drop(columns=["date"], errors="ignore")
             test_x_npy = test_x.drop(columns=["date"], errors="ignore")
 
-            # Save numpy arrays
             np.save(self.config.x_transform, train_x_npy.values)
             np.save(self.config.y_transform, train_y.values)
 
             logger.info(f"Shapes - Train X: {train_x_npy.shape}, Train Y: {train_y.shape}, test X: {test_x_npy.shape}, Test Y: {test_y.shape}")
 
-            # Save CSVs for inspection
             train_x.to_csv(self.config.train_features, index=False)
             train_y.to_csv(self.config.train_target, index=False)
             test_x.to_csv(self.config.test_features, index=False)

@@ -1,4 +1,4 @@
-from WattPredictor.config.config import ConfigurationManager
+from WattPredictor.config.data_config import ConfigurationManager
 from WattPredictor.components.data_ingestion import DataIngestion
 
 

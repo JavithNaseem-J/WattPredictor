@@ -6,8 +6,6 @@ from WattPredictor.entity.config_entity import DataValidationConfig
 from WattPredictor.utils.helpers import create_directories
 from WattPredictor.utils.exception import CustomException
 
-
-
 class DataValidation:
     def __init__(self, config: DataValidationConfig):
         self.config = config

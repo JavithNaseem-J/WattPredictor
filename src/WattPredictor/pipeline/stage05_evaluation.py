@@ -1,4 +1,4 @@
-from WattPredictor.config.config import ConfigurationManager
+from WattPredictor.config.model_config import ConfigurationManager
 from WattPredictor.components.model_evaluation import ModelEvaluation
 
 

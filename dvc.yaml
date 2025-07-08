@@ -5,13 +5,13 @@ stages:
       - src/WattPredictor/pipeline/stage01_ingestion.py
       - config_file/config.yaml
     outs:
-      - artifacts/data_ingestion
+      - data/processed
 
   data_validation:
     cmd: python main.py --stage data_validation
     deps:
       - src/WattPredictor/pipeline/stage02_validation.py
-      - artifacts/data_ingestion/data/elec_wx_demand.csv
+      - data/processed/elec_wx_demand.csv
       - config_file/config.yaml
       - config_file/schema.yaml
     outs:

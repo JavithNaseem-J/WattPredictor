@@ -1,21 +1,23 @@
-artifacts_root: "artifacts"
+artifacts_root: artifacts
+
+feature_store:
+  hopsworks_project_name: WattPredictor
+  hopsworks_host: app.hopsworks.ai
 
 data_ingestion:
-  root_dir: artifacts/data_ingestion
-  elec_api: https://api.eia.gov/v2/electricity/rto/region-sub-ba-data/data/
-  wx_api: https://archive-api.open-meteo.com/v1/archive
-  elec_raw_data: artifacts/data_ingestion/raw/elec_data/
-  wx_raw_data: artifacts/data_ingestion/raw/wx_data/
-  data_file: artifacts/data_ingestion/data/elec_wx_demand.csv
+  root_dir: data
+  elec_raw_data: data/raw/elec_data/
+  wx_raw_data: data/raw/wx_data/
+  data_file: data/processed/elec_wx_demand.csv
 
 data_validation:
   root_dir: artifacts/data_validation
-  data_file: artifacts/data_ingestion/data/elec_wx_demand.csv
+  data_file: data/processed/elec_wx_demand.csv
   status_file: artifacts/data_validation/status.json
 
 data_transformation:
   root_dir: artifacts/data_transformation
-  data_file: artifacts/data_ingestion/data/elec_wx_demand.csv
+  data_file: data/processed/elec_wx_demand.csv
   status_file: artifacts/data_validation/status.json
   label_encoder: artifacts/data_transformation/label_encoder.pkl
   x_transform: artifacts/data_transformation/x_transform.npy
@@ -44,3 +46,4 @@ model_registry:
   model_name: Condition2CureModel
   metric_path: artifacts/model_evaluation/metrics.json
   metric_key: mae
+  metadata_path: artifacts/model_registry/condition2cure_model_metadata.json

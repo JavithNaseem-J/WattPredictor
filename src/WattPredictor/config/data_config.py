@@ -1,6 +1,5 @@
 from pathlib import Path
-from WattPredictor.entity.config_entity import (DataIngestionConfig, DataValidationConfig, DataTransformationConfig,
-                                                 ModelTrainerConfig, ModelEvaluationConfig)
+from WattPredictor.entity.config_entity import DataIngestionConfig, DataValidationConfig, DataTransformationConfig
 from WattPredictor.utils.helpers import read_yaml, create_directories
 from WattPredictor.constants import CONFIG_PATH, PARAMS_PATH, SCHEMA_PATH
 
@@ -13,8 +12,7 @@ class ConfigurationManager:
 
         self.config = read_yaml(config_filepath)
         self.params = read_yaml(params_filepath)
-        if schema_filepath.exists():
-            self.schema = read_yaml(schema_filepath)
+        self.schema = read_yaml(schema_filepath)
 
         create_directories([self.config.artifacts_root])
 
@@ -26,8 +24,6 @@ class ConfigurationManager:
 
         data_ingestion_config = DataIngestionConfig(
             root_dir=Path(config.root_dir),
-            elec_api=config.elec_api,
-            wx_api=config.wx_api,
             elec_raw_data=Path(config.elec_raw_data),
             wx_raw_data=Path(config.wx_raw_data),
             data_file=Path(config.data_file),
@@ -77,39 +73,3 @@ class ConfigurationManager:
         )
 
         return data_transformation_config
-    
-
-    def get_model_trainer_config(self) -> ModelTrainerConfig:
-        config = self.config.model_trainer
-        params = self.params.model_trainer
-
-        create_directories([config.root_dir])
-
-        model_trainer_config =  ModelTrainerConfig(
-            root_dir=Path(config.root_dir),
-            x_transform=Path(config.x_transform),
-            y_transform=Path(config.y_transform),
-            model_name=config.model_name,
-            scoring=params.scoring,
-            cv_folds=params.cv_folds,
-            n_jobs=params.n_jobs,
-            n_trials=params.n_trials,
-            early_stopping_rounds=params.early_stopping_rounds,
-        )
-
-        return model_trainer_config
-    
-
-    def get_model_evaluation_config(self) -> ModelEvaluationConfig:
-        config = self.config.model_evaluation
-
-        create_directories([config.root_dir])
-
-        model_evaluation_config =  ModelEvaluationConfig(
-            model_path=Path(config.model_path),
-            x_transform=Path(config.x_transform),
-            y_transform=Path(config.y_transform),
-            metrics_path=Path(config.metrics_path)
-        )
-
-        return model_evaluation_config
