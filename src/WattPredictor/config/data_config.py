@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from WattPredictor.entity.config_entity import DataIngestionConfig, DataValidationConfig, DataTransformationConfig
 from WattPredictor.utils.helpers import read_yaml, create_directories
@@ -26,6 +27,9 @@ class ConfigurationManager:
             root_dir=Path(config.root_dir),
             elec_raw_data=Path(config.elec_raw_data),
             wx_raw_data=Path(config.wx_raw_data),
+            elec_api= os.environ['elec_api'],
+            wx_api= os.environ['wx_api'],
+            elec_api_key= os.environ['elec_api_key'],
             data_file=Path(config.data_file),
             start_date=params.start_date,
             end_date=params.end_date
@@ -61,12 +65,8 @@ class ConfigurationManager:
             data_file=Path(config.data_file),
             status_file=Path(config.status_file),
             label_encoder=Path(config.label_encoder),
-            x_transform=Path(config.x_transform),
-            y_transform=Path(config.y_transform),
             train_features=Path(config.train_features),
             test_features=Path(config.test_features),
-            train_target=Path(config.train_target),
-            test_target=Path(config.test_target),
             input_seq_len=params.input_seq_len,
             step_size=params.step_size,
             cutoff_date=params.cutoff_date

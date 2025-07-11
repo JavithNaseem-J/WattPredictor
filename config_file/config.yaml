@@ -1,11 +1,15 @@
 artifacts_root: artifacts
 
 feature_store:
-  hopsworks_project_name: WattPredictor
+  hopsworks_project_name: JavithNaseem
   hopsworks_host: app.hopsworks.ai
+  hopsworks_api_key: ${hopsworks_api_key}
 
 data_ingestion:
   root_dir: data
+  elec_api: ${elec_api}
+  wx_api: ${wx_api}
+  elec_api_key: ${elec_api_key}
   elec_raw_data: data/raw/elec_data/
   wx_raw_data: data/raw/wx_data/
   data_file: data/processed/elec_wx_demand.csv
@@ -20,26 +24,22 @@ data_transformation:
   data_file: data/processed/elec_wx_demand.csv
   status_file: artifacts/data_validation/status.json
   label_encoder: artifacts/data_transformation/label_encoder.pkl
-  x_transform: artifacts/data_transformation/x_transform.npy
-  y_transform: artifacts/data_transformation/y_transform.npy
   train_features: artifacts/data_transformation/train_features.csv
   test_features: artifacts/data_transformation/test_features.csv
-  train_target: artifacts/data_transformation/train_target.csv
-  test_target: artifacts/data_transformation/test_target.csv
 
 model_trainer:
   root_dir: artifacts/model_trainer
-  x_transform: artifacts/data_transformation/x_transform.npy
-  y_transform: artifacts/data_transformation/y_transform.npy
+  train_features: artifacts/data_transformation/train_features.csv
   test_features: artifacts/data_transformation/test_features.csv
-  test_target: artifacts/data_transformation/test_target.csv
+  x_transform: artifacts/data_transformation/test_x.parquet
+  y_transform: artifacts/data_transformation/test_y.parquet
   model_name: model.joblib
 
 model_evaluation:
   root_dir: artifacts/model_evaluation
   model_path: artifacts/model_trainer/model.joblib
-  x_transform: artifacts/data_transformation/x_transform.npy
-  y_transform: artifacts/data_transformation/y_transform.npy
+  x_transform: artifacts/data_transformation/test_x.parquet
+  y_transform: artifacts/data_transformation/test_y.parquet
   metrics_path: artifacts/model_evaluation/metrics.json
 
 model_registry:

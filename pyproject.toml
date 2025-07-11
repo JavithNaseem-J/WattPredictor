@@ -6,43 +6,59 @@ authors = ["JavithNaseem-J <javithnaseem.j@gmail.com>"]
 packages = [{ include = "WattPredictor", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.11"
+python = ">=3.9,<3.10"
+
+# Core packages
 pandas = "*"
 numpy = "*"
 scikit-learn = "*"
 matplotlib = "*"
 seaborn = "*"
-lightgbm = "*"
-mlflow = "*"
-dvc = "*"
-dvc-s3 = "*"
-optuna = "*"
-xgboost = "*"
+joblib = "*"
 tqdm = "*"
+scipy = "*"
 pyyaml = "*"
 python-box = "*"
-scipy = "*"
 ensure = "*"
-dot_env = "*"
-joblib = "*"
+
+# ML packages
+xgboost = "*"
+lightgbm = "*"
+optuna = "*"
+imblearn = "*"
+
+# Experiment tracking
+mlflow = "*"
+dagshub = "*"
+
+# MLOps & data versioning
+dvc = "*"
+dvc-s3 = "*"
+
+# Hopsworks & Feature Store
 hopsworks = "*"
+hsfs = "*"
+
+# Environment & config
 python-multipart = "*"
 types-pyyaml = "*"
-dagshub = "*"
-gdown = "*"
-ydata-profiling = "*"
-ipywidgets = "*"
-boto3 = "*"
-imblearn = "*"
-uvicorn = "*"
+
+# Weather API dependencies
 openmeteo_requests = "*"
 requests_cache = "*"
 retry_requests = "*"
 
+# Misc
+gdown = "*"
+boto3 = "*"
+ydata-profiling = "*"
+uvicorn = "*"
+requests = "*"
+
 [tool.poetry.group.dev.dependencies]
-pytest = "*"
 jupyter = "*"
 ipykernel = "*"
+pytest = "*"
 
 [build-system]
 requires = ["poetry-core"]

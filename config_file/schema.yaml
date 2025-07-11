@@ -1,11 +1,11 @@
 columns:
   period: object
   subba: object
-  subba-name: object
+  subba_name: object
   parent: object
-  parent-name: object
+  parent_name: object
   value: int64
-  value-units: object
+  value_units: object
   date: object
   temperature_2m: float64
   weather_code: float64

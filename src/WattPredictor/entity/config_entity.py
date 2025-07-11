@@ -2,10 +2,18 @@ from pathlib import Path
 from dataclasses import dataclass
 
 @dataclass(frozen=True)
+class FeatureStoreConfig:
+    hopsworks_project_name: str
+    hopsworks_api_key: str
+
+@dataclass(frozen=True)
 class DataIngestionConfig:
     root_dir: Path
     elec_raw_data: Path
     wx_raw_data: Path
+    elec_api: str
+    wx_api: str
+    elec_api_key: str
     data_file: Path
     start_date: str
     end_date: str
@@ -23,12 +31,8 @@ class DataTransformationConfig:
     data_file: Path
     status_file: str
     label_encoder: Path
-    x_transform: Path
-    y_transform: Path
     train_features: Path
     test_features: Path
-    train_target: Path
-    test_target: Path
     input_seq_len: int
     step_size: int
     cutoff_date: str
@@ -36,14 +40,15 @@ class DataTransformationConfig:
 @dataclass
 class ModelTrainerConfig:
     root_dir: Path
+    model_name: str
+    train_features: Path
+    test_features: Path
     x_transform: Path
     y_transform: Path
-    model_name: str
-    scoring: str
-    cv_folds: int
-    n_jobs: int
+    input_seq_len: int
+    step_size: int
     n_trials: int
-    early_stopping_rounds: int
+
 
 @dataclass
 class ModelEvaluationConfig:
