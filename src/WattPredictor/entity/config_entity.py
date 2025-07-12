@@ -31,28 +31,22 @@ class DataTransformationConfig:
     data_file: Path
     status_file: str
     label_encoder: Path
-    train_features: Path
-    test_features: Path
-    input_seq_len: int
-    step_size: int
-    cutoff_date: str
+
 
 @dataclass
 class ModelTrainerConfig:
     root_dir: Path
-    model_name: str
-    train_features: Path
-    test_features: Path
-    x_transform: Path
-    y_transform: Path
     input_seq_len: int
     step_size: int
     n_trials: int
+    cutoff_date: str
+    model_name: Path
 
 
 @dataclass
 class ModelEvaluationConfig:
     model_path: Path
-    x_transform: Path
-    y_transform: Path
+    cutoff_date: str
+    input_seq_len: int
+    step_size: int
     metrics_path: Path

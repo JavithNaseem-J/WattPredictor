@@ -18,21 +18,17 @@ class ConfigurationManager:
 
     def get_model_trainer_config(self) -> ModelTrainerConfig:
         config = self.config.model_trainer
-        params = self.params.model_trainer
-        trans = self.params.transformation
+        params = self.params.training
 
         create_directories([config.root_dir])
 
         model_trainer_config = ModelTrainerConfig(
             root_dir=Path(config.root_dir),
-            train_features= Path(config.train_features),
-            test_features= Path(config.test_features),
-            x_transform= Path(config.x_transform),
-            y_transform= Path(config.y_transform),
-            model_name=config.model_name,
-            input_seq_len= trans.input_seq_len,
-            step_size = trans.step_size,
-            n_trials=params.n_trials
+            input_seq_len= params.input_seq_len,
+            step_size = params.step_size,
+            n_trials=params.n_trials,
+            cutoff_date = params.cutoff_date,
+            model_name = Path(config.model_name)
         )
 
         return model_trainer_config
@@ -40,11 +36,13 @@ class ConfigurationManager:
 
     def get_model_evaluation_config(self) -> ModelEvaluationConfig:
         config = self.config.model_evaluation
+        params = self.params.training
 
         model_evaluation_config =  ModelEvaluationConfig(
             model_path=Path(config.model_path),
-            x_transform=Path(config.X_transform),
-            y_transform=Path(config.y_transform),
+            cutoff_date=params.cutoff_date,
+            input_seq_len= params.input_seq_len,
+            step_size = params.step_size,
             metrics_path=Path(config.metrics_path)
         )
 

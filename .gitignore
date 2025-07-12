@@ -214,4 +214,4 @@ artifacts/
 logs/
 .env
 data/
-.dvc
+.dvc/

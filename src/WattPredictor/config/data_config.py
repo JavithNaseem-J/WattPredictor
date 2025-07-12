@@ -50,13 +50,13 @@ class ConfigurationManager:
             data_file=config.data_file,
             all_schema=schema,
         )
+        
         return data_validation_config
     
 
     def get_data_transformation_config(self) -> DataTransformationConfig:
         config = self.config.data_transformation
-        schema = self.schema
-        params = self.params.transformation
+        params = self.params.training
 
         create_directories([config.root_dir])
 
@@ -64,12 +64,7 @@ class ConfigurationManager:
             root_dir=Path(config.root_dir),
             data_file=Path(config.data_file),
             status_file=Path(config.status_file),
-            label_encoder=Path(config.label_encoder),
-            train_features=Path(config.train_features),
-            test_features=Path(config.test_features),
-            input_seq_len=params.input_seq_len,
-            step_size=params.step_size,
-            cutoff_date=params.cutoff_date
+            label_encoder=Path(config.label_encoder)
         )
 
         return data_transformation_config

@@ -13,8 +13,6 @@ from WattPredictor.utils.exception import CustomException
 from WattPredictor.components.feature_store import FeatureStore
 from WattPredictor.utils.helpers import create_directories, save_json, load_json
 from WattPredictor.entity.config_entity import DataIngestionConfig, FeatureStoreConfig
-
-
 from dotenv import load_dotenv
 
 cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
@@ -33,6 +31,7 @@ class DataIngestion:
 
     def _elec_get_api_url(self, year, month, day):
 
+
         return self.config.elec_api, {
             "frequency": "hourly",
             "data[0]": "value",
@@ -48,6 +47,7 @@ class DataIngestion:
 
     def _wx_get_api_url(self, start_date, end_date):
 
+
         return self.config.wx_api, {
             "latitude": 40.7128,
             "longitude": -74.0060,
@@ -59,6 +59,7 @@ class DataIngestion:
         }
 
     def _fetch_data(self, data_type, *args):
+
 
         try:
             if data_type == "electricity":
@@ -110,12 +111,10 @@ class DataIngestion:
                 return df
             
             return pd.DataFrame()
-        
-        except Exception as e:
-            logger.error(f"Error during Fetch Data: {e}")
-            raise CustomException(e, sys)
-        
 
+        except Exception as e:
+            logger.error(f"Unexpected error fetching {data_type} data: {e}")
+            raise CustomException(e, sys)
 
     def download(self):
 
@@ -156,7 +155,6 @@ class DataIngestion:
                     .str.strip()
                 )
                 
-                # Save to Feature Store
                 self.feature_store.create_feature_group(
                     name="elec_wx_demand",
                     df=combined_df,
