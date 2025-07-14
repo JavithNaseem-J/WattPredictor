@@ -97,7 +97,6 @@ class ModelTrainer:
             create_directories([model_path.parent])
             save_bin(final_model, model_path)
 
-            # Create schema from training data
             input_schema = Schema(train_x)
             output_schema = Schema(pd.DataFrame(train_y))
             model_schema = ModelSchema(input_schema=input_schema, output_schema=output_schema)

@@ -34,12 +34,10 @@ class DataTransformation:
         try:
             fg = self.feature_store.feature_store.get_feature_group(name="elec_wx_demand", version=1)
             df = fg.read()
-            df = df[['date', 'subba', 'value', 'temperature_2m']]
-
             le = LabelEncoder()
             df['sub_region_code'] = le.fit_transform(df['subba'])
             df.rename(columns={'subba': 'sub_region', 'value': 'demand'}, inplace=True)
-            df = df[['date', 'sub_region_code', 'demand', 'temperature_2m']]
+            df = df[['date_str','date', 'sub_region_code', 'demand', 'temperature_2m']]
 
             create_directories([os.path.dirname(self.config.label_encoder)])
             save_bin(le, self.config.label_encoder)
@@ -66,10 +64,10 @@ class DataTransformation:
             self.feature_store.create_feature_group(
                 name="elec_wx_features",
                 df=df,
-                primary_key=["sub_region_code"],
+                primary_key=["date_str","sub_region_code"],
                 event_time="date",
                 description="Engineered electricity demand features",
-                online=True
+                online_enabled=True
             )
 
             logger.info("Feature group created and feature engineering complete.")

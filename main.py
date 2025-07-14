@@ -7,6 +7,7 @@ from WattPredictor.pipeline.stage02_validation import DataValidationPipeline
 from WattPredictor.pipeline.stage03_transformation import DataTransformationPipeline
 from WattPredictor.pipeline.stage04_trainer import ModelTrainingPipeline
 from WattPredictor.pipeline.stage05_evaluation import ModelEvaluationPipeline
+from WattPredictor.pipeline.stage06_drift import DataDriftPipeline
 from WattPredictor.utils.exception import CustomException
 
 
@@ -32,6 +33,10 @@ def run_stages(stage_run):
         
         elif stage_run == "model_evaluation":
             stage = ModelEvaluationPipeline()
+            stage.run()
+
+        elif stage_run == "drift_detection":
+            stage = DataDriftPipeline()
             stage.run()
 
         else:
@@ -61,7 +66,8 @@ if __name__ == "__main__":
                 "data_validation",
                 "data_transformation",
                 "model_training",
-                "model_evaluation"
+                "model_evaluation",
+                "drift_detection"
             ]
 
             for stage in stages:

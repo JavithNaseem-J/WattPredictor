@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from WattPredictor.entity.config_entity import DataIngestionConfig, DataValidationConfig, DataTransformationConfig
+from WattPredictor.entity.config_entity import DataIngestionConfig, DataValidationConfig, DataTransformationConfig, DataDriftConfig
 from WattPredictor.utils.helpers import read_yaml, create_directories
 from WattPredictor.constants import CONFIG_PATH, PARAMS_PATH, SCHEMA_PATH
 
@@ -68,3 +68,19 @@ class ConfigurationManager:
         )
 
         return data_transformation_config
+    
+    def get_data_drift_config(self) -> DataDriftConfig:
+        config = self.config.data_drift
+        params = self.params.drift
+
+        create_directories([config.root_dir])
+        
+        data_drift_cofig =  DataDriftConfig(
+            baseline_start=self.params.drift.baseline_start,
+            baseline_end=self.params.drift.baseline_end,
+            current_start=self.params.drift.current_start,
+            current_end=self.params.drift.current_end,
+            report_dir=Path(config.report_dir)
+        )
+        
+        return data_drift_cofig

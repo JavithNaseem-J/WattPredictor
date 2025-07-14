@@ -13,5 +13,5 @@ class DataTransformationPipeline:
         feature_store_config = feature.get_feature_store_config()
         data_transformation_config = config.get_data_transformation_config()
         data_transformation = DataTransformation(config=data_transformation_config,feature_store_config=feature_store_config)
-        train_df, test_df = data_transformation.transform()
+        df = data_transformation.transform()
 

@@ -50,3 +50,12 @@ class ModelEvaluationConfig:
     input_seq_len: int
     step_size: int
     metrics_path: Path
+
+
+@dataclass
+class DataDriftConfig:
+    baseline_start: str
+    baseline_end: str
+    current_start: str
+    current_end: str
+    report_dir: Path

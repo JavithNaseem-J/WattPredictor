@@ -15,7 +15,6 @@ from WattPredictor.utils.helpers import create_directories, save_json
 from WattPredictor.utils.exception import CustomException
 from WattPredictor import logger
 
-
 class ModelEvaluation:
     def __init__(self, config: ModelEvaluationConfig, feature_store_config):
         self.config = config
@@ -33,7 +32,7 @@ class ModelEvaluation:
 
             # Load model from Hopsworks
             model_registry = self.feature_store.project.get_model_registry()
-            model = model_registry.get_model("wattpredictor_lightgbm", version=1)
+            model = model_registry.get_model("wattpredictor_xgboost", version=1)
             model_dir = model.download()
             model_path = os.path.join(model_dir, "model.joblib")
             model_instance = joblib.load(model_path)

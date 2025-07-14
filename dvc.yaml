@@ -48,3 +48,15 @@ stages:
     outs:
       - artifacts/model_evaluation/metrics.json
 
+  data_drift:
+    cmd: python main.py --stage drift_detection
+    deps:
+      - src/WattPredictor/pipeline/stage06_drift.py
+      - config_file/config.yaml
+      - config_file/params.yaml
+
+    outs:
+      - artifacts/data_drift/drift_report.html
+      - artifacts/data_drift/drift_report.json
+
+
