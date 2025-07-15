@@ -45,12 +45,13 @@ class ModelTrainerConfig:
 
 @dataclass
 class ModelEvaluationConfig:
+    root_dir: Path
     model_path: Path
     cutoff_date: str
     input_seq_len: int
     step_size: int
+    img_path: Path
     metrics_path: Path
-
 
 @dataclass
 class DataDriftConfig:

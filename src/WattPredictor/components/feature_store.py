@@ -2,11 +2,12 @@ import hopsworks
 import pandas as pd
 import sys
 import os
+from WattPredictor.config.feature_config import FeatureStoreConfig
 from WattPredictor.utils.exception import CustomException
 from WattPredictor import logger
 
 class FeatureStore:
-    def __init__(self, config):
+    def __init__(self, config:FeatureStoreConfig):
         try:
             self.config = config
             self.connect()

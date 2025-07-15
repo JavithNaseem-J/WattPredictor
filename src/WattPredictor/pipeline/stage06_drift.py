@@ -7,7 +7,8 @@ class DataDriftPipeline:
         pass
     def run(self):
         config = ConfigurationManager()
+        feature = FeatureConfigurationManager()
         drift_config = config.get_data_drift_config()
-        feature_store_config = config.get_data_drift_config()
+        feature_store_config = feature.get_feature_store_config()
         drift_detector = DriftDetector(config=drift_config, feature_store_config=feature_store_config)
         drift_detected, report_dict = drift_detector.Detect()    

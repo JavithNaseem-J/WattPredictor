@@ -38,11 +38,15 @@ class ConfigurationManager:
         config = self.config.model_evaluation
         params = self.params.training
 
+        create_directories([config.root_dir])
+        
         model_evaluation_config =  ModelEvaluationConfig(
+            root_dir=Path(config.root_dir),
             model_path=Path(config.model_path),
             cutoff_date=params.cutoff_date,
             input_seq_len= params.input_seq_len,
             step_size = params.step_size,
+            img_path=Path(config.img_path),
             metrics_path=Path(config.metrics_path)
         )
 
