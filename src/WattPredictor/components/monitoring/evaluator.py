@@ -8,18 +8,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 from WattPredictor.config.model_config import ModelEvaluationConfig
-from WattPredictor.config.feature_config import FeatureStoreConfig
-from WattPredictor.components.feature_store import FeatureStore
+from WattPredictor.utils.feature import feature_store_instance
 from WattPredictor.utils.ts_generator import features_and_target
 from sklearn.metrics import mean_squared_error, mean_absolute_error,root_mean_squared_error, r2_score
 from WattPredictor.utils.helpers import create_directories, save_json
 from WattPredictor.utils.exception import CustomException
-from WattPredictor import logger
+from WattPredictor.utils.logging import logger
 
-class ModelEvaluation:
-    def __init__(self, config: ModelEvaluationConfig, feature_store_config):
+class Evaluation:
+    def __init__(self, config: ModelEvaluationConfig):
         self.config = config
-        self.feature_store = FeatureStore(feature_store_config)
+        self.feature_store = feature_store_instance()
 
     def evaluate(self):
         try:

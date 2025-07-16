@@ -4,7 +4,7 @@ from WattPredictor.utils.helpers import read_yaml, create_directories
 from WattPredictor.constants import *
 
 
-class ConfigurationManager:
+class ModelConfigurationManager:
     def __init__(self, 
                  config_filepath=CONFIG_PATH,
                  params_filepath=PARAMS_PATH,

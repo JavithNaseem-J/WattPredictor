@@ -6,19 +6,18 @@ from pathlib import Path
 from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset
 from evidently.metrics import (DatasetDriftMetric,ColumnDriftMetric,ColumnSummaryMetric)
+from WattPredictor.utils.feature import feature_store_instance
 from WattPredictor.config.data_config import DataDriftConfig
-from WattPredictor.config.feature_config import FeatureStoreConfig
-from WattPredictor.components.feature_store import FeatureStore
 from WattPredictor.utils.helpers import create_directories
 from WattPredictor.utils.exception import CustomException
-from WattPredictor import logger
+from WattPredictor.utils.logging import logger
 
 
-class DriftDetector:
-    def __init__(self,feature_store_config: FeatureStoreConfig,config: DataDriftConfig):
+class Drift:
+    def __init__(self,config: DataDriftConfig):
         
         self.config = config
-        self.feature_store = FeatureStore(feature_store_config)
+        self.feature_store = feature_store_instance()
 
 
     def _load_data(self, start_date, end_date):

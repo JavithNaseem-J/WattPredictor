@@ -9,8 +9,8 @@ stages:
       size: 1078
     - path: src/WattPredictor/pipeline/stage01_ingestion.py
       hash: md5
-      md5: acaf23f8a12443612d9ccd61db424e07
-      size: 660
+      md5: c15bfdfb0401357d5d7f8c0cb2e84f4f
+      size: 426
     outs:
     - path: data/processed
       hash: md5
@@ -62,8 +62,8 @@ stages:
       size: 306
     - path: src/WattPredictor/pipeline/stage03_transformation.py
       hash: md5
-      md5: ee3f4fc1ac4bae086dd54fc25ed02fcf
-      size: 731
+      md5: 74b1e67c064cdae3ed46e86c3e09ea15
+      size: 494
     outs:
     - path: artifacts/data_transformation/label_encoder.pkl
       hash: md5

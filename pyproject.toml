@@ -6,7 +6,7 @@ authors = ["JavithNaseem-J <javithnaseem.j@gmail.com>"]
 packages = [{ include = "WattPredictor", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.10"
+python = ">=3.10,<3.11"
 
 # Core packages
 pandas = "*"
@@ -17,10 +17,10 @@ seaborn = "*"
 joblib = "*"
 tqdm = "*"
 scipy = "*"
-pyyaml = "*"
+pyyaml = "^6.0.1"
 python-box = "*"
 ensure = "*"
-hsml = "*"
+dotenv = "*"
 
 # ML packages
 xgboost = "*"
@@ -32,29 +32,33 @@ imblearn = "*"
 mlflow = "*"
 dagshub = "*"
 
-# MLOps & data versioning
-dvc = "*"
-dvc-s3 = "*"
-
 # Hopsworks & Feature Store
 hopsworks = "*"
 hsfs = "*"
 
-# Environment & config
-python-multipart = "*"
-types-pyyaml = "*"
+# Evidently + version pinning fix
+evidently = "*"
+pydantic = "1.10.13"
+
+# MLOps & data versioning
+dvc = "*"
+dvc-s3 = "*"
 
 # Weather API dependencies
 openmeteo_requests = "*"
 requests_cache = "*"
 retry_requests = "*"
+requests = "*"
+
+# Environment & config
+python-multipart = "*"
+types-pyyaml = "*"
 
 # Misc
 gdown = "*"
 boto3 = "*"
 ydata-profiling = "*"
 uvicorn = "*"
-requests = "*"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "*"

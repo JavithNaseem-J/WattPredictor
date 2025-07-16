@@ -1,74 +1,65 @@
 import os
 import sys
 import argparse
-from WattPredictor import logger
-from WattPredictor.pipeline.stage01_ingestion import DataIngestionPipeline
-from WattPredictor.pipeline.stage02_validation import DataValidationPipeline
-from WattPredictor.pipeline.stage03_transformation import DataTransformationPipeline
-from WattPredictor.pipeline.stage04_trainer import ModelTrainingPipeline
-from WattPredictor.pipeline.stage05_evaluation import ModelEvaluationPipeline
-from WattPredictor.pipeline.stage06_drift import DataDriftPipeline
+from WattPredictor.utils.logging import logger
+from WattPredictor.pipeline.feature_pipeline import FeaturePipeline
+from WattPredictor.pipeline.training_pipeline import TrainingPipeline
+from WattPredictor.pipeline.monitoring_pipeline import MonitoringPipeline
 from WattPredictor.utils.exception import CustomException
 
 
 
-def run_stages(stage_run):
-    logger.info(f"Running stage: {stage_run}")
+def run_pipeline(stage: str):
+    logger.info(f"Running stage: {stage}")
     try:
-        if stage_run == "data_ingestion":
-            stage = DataIngestionPipeline()
-            stage.run()
+        if stage == "feature_pipeline":
+            pipeline = FeaturePipeline()
+            output = pipeline.run()
+            logger.info("Feature Pipeline completed.")
 
-        elif stage_run == "data_validation":
-            stage = DataValidationPipeline()
-            stage.run()
+        elif stage == "training_pipeline":
+            pipeline = TrainingPipeline()
+            output = pipeline.run()
+            logger.info("Training Pipeline completed.")
 
-        elif stage_run == "data_transformation":
-            stage = DataTransformationPipeline()
-            stage.run()
+        #elif stage == "inference_pipeline":
+            #pipeline = InferencePipeline()
+            #output = pipeline.run()
+            #logger.info(f"Inference completed. Predictions: {output}")
 
-        elif stage_run == "model_training":
-            stage = ModelTrainingPipeline()
-            stage.run()
-        
-        elif stage_run == "model_evaluation":
-            stage = ModelEvaluationPipeline()
-            stage.run()
-
-        elif stage_run == "drift_detection":
-            stage = DataDriftPipeline()
-            stage.run()
+        elif stage == "monitoring_pipeline":
+            pipeline = MonitoringPipeline()
+            output = pipeline.run()
+            logger.info(f"Monitoring results: {output}")
 
         else:
-            logger.info("No valid stage specified. Exiting.")
+            logger.error("Invalid stage specified.")
+            output = None
 
-        logger.info(f"Stage {stage_run} completed successfully")
+        logger.info(f"Stage {stage} executed successfully")
+        return output
 
     except Exception as e:
+        logger.error(f"Pipeline stage {stage} failed: {str(e)}")
         raise CustomException(e, sys) from e
-    
+
 
 if __name__ == "__main__":
-        parser = argparse.ArgumentParser(description="Run Specific Stage of the Pipeline")
+    parser = argparse.ArgumentParser(description="Run ML pipelines for WattPredictor")
 
-        parser.add_argument("--stage")
+    parser.add_argument("--stage", type=str, help="Specify pipeline stage: feature_pipeline, training_pipeline, inference_pipeline, monitoring_pipeline")
 
-        args = parser.parse_args()
+    args = parser.parse_args()
 
+    if args.stage:
+        run_pipeline(args.stage)
 
-        if args.stage:
-            run_stages(args.stage)
+    else:
+        stages = [
+            "feature_pipeline",
+            "training_pipeline",
+            "monitoring_pipeline"
+        ]
 
-        else:
-
-            stages = [
-                "data_ingestion",
-                "data_validation",
-                "data_transformation",
-                "model_training",
-                "model_evaluation",
-                "drift_detection"
-            ]
-
-            for stage in stages:
-                run_stages(stage)
+        for stage in stages:
+            run_pipeline(stage)

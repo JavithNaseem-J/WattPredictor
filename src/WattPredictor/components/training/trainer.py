@@ -9,21 +9,20 @@ from lightgbm import LGBMRegressor
 from xgboost import XGBRegressor
 from WattPredictor.utils.helpers import *
 from WattPredictor.utils.ts_generator import features_and_target
-from WattPredictor.config.feature_config import FeatureStoreConfig
 from WattPredictor.config.model_config import ModelTrainerConfig
-from WattPredictor.components.feature_store import FeatureStore
+from WattPredictor.utils.feature import feature_store_instance
 from sklearn.model_selection import KFold, train_test_split, cross_val_score
 from sklearn.metrics import mean_squared_error,root_mean_squared_error
 from WattPredictor.utils.helpers import create_directories
 from WattPredictor.utils.exception import CustomException
-from WattPredictor import logger
+from WattPredictor.utils.logging import logger
 
 
 
-class ModelTrainer:
-    def __init__(self, config: ModelTrainerConfig, feature_store_config: FeatureStoreConfig):
+class Trainer:
+    def __init__(self, config: ModelTrainerConfig):
         self.config = config
-        self.feature_store = FeatureStore(feature_store_config)
+        self.feature_store =feature_store_instance()
 
         self.models = {
             "XGBoost": {

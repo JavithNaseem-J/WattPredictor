@@ -2,9 +2,9 @@ import hopsworks
 import pandas as pd
 import sys
 import os
+from WattPredictor.utils.logging import logger
 from WattPredictor.config.feature_config import FeatureStoreConfig
 from WattPredictor.utils.exception import CustomException
-from WattPredictor import logger
 
 class FeatureStore:
     def __init__(self, config:FeatureStoreConfig):
@@ -29,32 +29,80 @@ class FeatureStore:
 
 
     def create_feature_group(self, name, df, primary_key, event_time, description, online_enabled=True, version=1):
+        """
+        Create or update a feature group with proper error handling for metadata inconsistencies
+        """
         try:
             try:
                 fg = self.feature_store.get_feature_group(name=name, version=version)
-                logger.info(f"Feature Group '{name}' v{version} exists. Deleting it.")
-                fg.delete()
-            except Exception:
-                logger.info(f"Feature Group '{name}' v{version} does not exist. Will create a new one.")
+                if fg is not None:
+                    logger.info(f"Feature Group '{name}' v{version} exists. Attempting to insert data.")
+                    try:
+                        fg.insert(df)
+                        logger.info(f"Successfully inserted data into existing Feature Group '{name}' v{version}")
+                        return fg
+                    except Exception as insert_error:
+                        logger.warning(f"Insert failed: {insert_error}. Attempting to delete and recreate.")
+                        try:
+                            fg.delete()
+                            logger.info(f"Deleted corrupted Feature Group '{name}' v{version}")
+                        except Exception as delete_error:
+                            logger.warning(f"Delete failed: {delete_error}")
+            except Exception as get_error:
+                logger.info(f"Feature Group '{name}' v{version} does not exist or is corrupted: {get_error}")
 
-            # Create a new feature group
-            logger.info(f"Creating Feature Group '{name}' v{version}.")
-            fg = self.feature_store.get_or_create_feature_group(
-                name=name,
-                version=version,
-                primary_key=primary_key,
-                event_time=event_time,
-                description=description,
-                online_enabled=online_enabled
-            )
-
-            fg.save(df)
-            logger.info(f"Feature Group '{name}' v{version} created and data inserted.")
+            # Create new feature group
+            logger.info(f"Creating new Feature Group '{name}' v{version}")
+            try:
+                fg = self.feature_store.create_feature_group(
+                    name=name,
+                    version=version,
+                    primary_key=primary_key,
+                    event_time=event_time,
+                    description=description,
+                    online_enabled=online_enabled
+                )
+                fg.save(df)
+                logger.info(f"Successfully created Feature Group '{name}' v{version}")
+                return fg
+                
+            except Exception as create_error:
+                if "already exists" in str(create_error):
+                    logger.error(f"Hive table exists but metadata is corrupted. Manual cleanup required.")
+                    version += 1
+                    logger.info(f"Attempting to create with version {version}")
+                    fg = self.feature_store.create_feature_group(
+                        name=name,
+                        version=version,
+                        primary_key=primary_key,
+                        event_time=event_time,
+                        description=description,
+                        online_enabled=online_enabled
+                    )
+                    fg.save(df)
+                    logger.info(f"Successfully created Feature Group '{name}' v{version}")
+                    return fg
+                else:
+                    raise create_error
 
         except Exception as e:
+            logger.error(f"Failed to create/update Feature Group '{name}': {str(e)}")
             raise CustomException(e, sys)
 
-
+    def get_latest_feature_group_version(self, name):
+ 
+        try:
+            all_fgs = self.feature_store.get_feature_groups()
+            versions = [fg.version for fg in all_fgs if fg.name == name]
+            
+            if versions:
+                return max(versions)
+            else:
+                return None
+                
+        except Exception as e:
+            logger.error(f"Failed to get latest version for '{name}': {str(e)}")
+            return None
 
     def create_feature_view(self, name: str, feature_group_name: str, features: list):
         try:

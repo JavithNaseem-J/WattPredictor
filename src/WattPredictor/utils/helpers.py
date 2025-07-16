@@ -1,7 +1,7 @@
 import os
 from box.exceptions import BoxValueError
 import yaml
-from WattPredictor import logger
+from WattPredictor.utils.logging import logger
 import json
 import joblib
 import boto3
