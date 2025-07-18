@@ -7,14 +7,15 @@ from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset
 from evidently.metrics import (DatasetDriftMetric,ColumnDriftMetric,ColumnSummaryMetric)
 from WattPredictor.utils.feature import feature_store_instance
-from WattPredictor.config.data_config import DataDriftConfig
+from WattPredictor.entity.config_entity import DriftConfig
+from WattPredictor.config.data_config import DataConfigurationManager
 from WattPredictor.utils.helpers import create_directories
 from WattPredictor.utils.exception import CustomException
 from WattPredictor.utils.logging import logger
 
 
 class Drift:
-    def __init__(self,config: DataDriftConfig):
+    def __init__(self,config: DriftConfig):
         
         self.config = config
         self.feature_store = feature_store_instance()
@@ -22,7 +23,7 @@ class Drift:
 
     def _load_data(self, start_date, end_date):
         try:
-            df, _ = self.feature_store.load_latest_training_dataset('elec_wx_features_view')
+            df, _ = self.feature_store.get_training_data('elec_wx_features_view')
             df['date'] = pd.to_datetime(df['date'], utc=True)
             df = df[(df['date'] >= start_date) & (df['date'] <= end_date)]
             df = df.drop(columns=["date_str"], errors="ignore")
@@ -34,9 +35,6 @@ class Drift:
         try:
             baseline_df = self._load_data(self.config.baseline_start, self.config.baseline_end)
             current_df = self._load_data(self.config.current_start, self.config.current_end)
-
-            if baseline_df.empty or current_df.empty:
-                raise CustomException("Baseline or current data is empty", sys)
 
             report = Report(metrics=[
                 DataDriftPreset(),

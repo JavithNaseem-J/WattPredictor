@@ -8,7 +8,8 @@ from pathlib import Path
 from datetime import datetime
 from sklearn.preprocessing import LabelEncoder
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
-from WattPredictor.config.data_config import DataTransformationConfig
+from WattPredictor.entity.config_entity import EngineeringConfig
+from WattPredictor.config.data_config import DataConfigurationManager
 from WattPredictor.utils.feature import feature_store_instance
 from WattPredictor.utils.helpers import create_directories, save_bin
 from WattPredictor.utils.exception import CustomException
@@ -16,9 +17,11 @@ from WattPredictor.utils.logging import logger
 
 
 class Engineering:
-    def __init__(self, config: DataTransformationConfig):
+    def __init__(self, config: EngineeringConfig):
         self.config = config
-        self.feature_store =feature_store_instance()
+        self.feature_store = feature_store_instance()
+
+
     def check_status(self):
         try:
             with open(self.config.status_file, 'r') as f:
@@ -30,7 +33,7 @@ class Engineering:
 
     def basic_preprocessing(self) -> pd.DataFrame:
         try:
-            fg = self.feature_store.feature_store.get_feature_group(name="elec_wx_demand", version=2)
+            fg = self.feature_store.feature_store.get_feature_group(name="elec_wx_demands", version=2)
             df = fg.read()
             le = LabelEncoder()
             df['sub_region_code'] = le.fit_transform(df['subba'])

@@ -1,7 +1,7 @@
 from WattPredictor.config.data_config import DataConfigurationManager
 from WattPredictor.config.model_config import ModelConfigurationManager
-from WattPredictor.components.monitoring.drift import Drift
-from WattPredictor.components.monitoring.evaluator import Evaluation
+from WattPredictor.components.monitor.drift import Drift
+from src.WattPredictor.components.training.evaluator import Evaluation
 
 class MonitoringPipeline:
     def __init__(self):

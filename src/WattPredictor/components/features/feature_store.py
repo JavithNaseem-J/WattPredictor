@@ -2,143 +2,106 @@ import hopsworks
 import pandas as pd
 import sys
 import os
+import joblib
+from pathlib import Path
 from WattPredictor.utils.logging import logger
 from WattPredictor.config.feature_config import FeatureStoreConfig
 from WattPredictor.utils.exception import CustomException
 
+
 class FeatureStore:
-    def __init__(self, config:FeatureStoreConfig):
+    def __init__(self, config):
+        self.config = config
+        self.project = hopsworks.login(
+            project=config.hopsworks_project_name,
+            api_key_value=config.hopsworks_api_key
+        )
+        self.feature_store = self.project.get_feature_store()
+        self.dataset_api = self.project.get_dataset_api()
+        logger.info(f"Connected to Hopsworks Feature Store: {config.hopsworks_project_name}")
+
+    def create_feature_group(self, name, df, primary_key, event_time, description, online_enabled=True, version=2):
         try:
-            self.config = config
-            self.connect()
-        except Exception as e:
-            raise CustomException(e, sys)
-
-
-    def connect(self):
-        try:
-            self.project = hopsworks.login(
-                project=self.config.hopsworks_project_name,
-                api_key_value=self.config.hopsworks_api_key
-            )
-            self.feature_store = self.project.get_feature_store()
-            self.dataset_api = self.project.get_dataset_api()
-            logger.info(f"Connected to Hopsworks Feature Store: {self.config.hopsworks_project_name}")
-        except Exception as e:
-            raise CustomException(e, sys)
-
-
-    def create_feature_group(self, name, df, primary_key, event_time, description, online_enabled=True, version=1):
-        """
-        Create or update a feature group with proper error handling for metadata inconsistencies
-        """
-        try:
-            try:
-                fg = self.feature_store.get_feature_group(name=name, version=version)
-                if fg is not None:
-                    logger.info(f"Feature Group '{name}' v{version} exists. Attempting to insert data.")
-                    try:
-                        fg.insert(df)
-                        logger.info(f"Successfully inserted data into existing Feature Group '{name}' v{version}")
-                        return fg
-                    except Exception as insert_error:
-                        logger.warning(f"Insert failed: {insert_error}. Attempting to delete and recreate.")
-                        try:
-                            fg.delete()
-                            logger.info(f"Deleted corrupted Feature Group '{name}' v{version}")
-                        except Exception as delete_error:
-                            logger.warning(f"Delete failed: {delete_error}")
-            except Exception as get_error:
-                logger.info(f"Feature Group '{name}' v{version} does not exist or is corrupted: {get_error}")
-
-            # Create new feature group
-            logger.info(f"Creating new Feature Group '{name}' v{version}")
-            try:
-                fg = self.feature_store.create_feature_group(
-                    name=name,
-                    version=version,
-                    primary_key=primary_key,
-                    event_time=event_time,
-                    description=description,
-                    online_enabled=online_enabled
-                )
-                fg.save(df)
-                logger.info(f"Successfully created Feature Group '{name}' v{version}")
-                return fg
-                
-            except Exception as create_error:
-                if "already exists" in str(create_error):
-                    logger.error(f"Hive table exists but metadata is corrupted. Manual cleanup required.")
-                    version += 1
-                    logger.info(f"Attempting to create with version {version}")
-                    fg = self.feature_store.create_feature_group(
-                        name=name,
-                        version=version,
-                        primary_key=primary_key,
-                        event_time=event_time,
-                        description=description,
-                        online_enabled=online_enabled
-                    )
-                    fg.save(df)
-                    logger.info(f"Successfully created Feature Group '{name}' v{version}")
-                    return fg
-                else:
-                    raise create_error
-
-        except Exception as e:
-            logger.error(f"Failed to create/update Feature Group '{name}': {str(e)}")
-            raise CustomException(e, sys)
-
-    def get_latest_feature_group_version(self, name):
- 
-        try:
-            all_fgs = self.feature_store.get_feature_groups()
-            versions = [fg.version for fg in all_fgs if fg.name == name]
-            
-            if versions:
-                return max(versions)
-            else:
-                return None
-                
-        except Exception as e:
-            logger.error(f"Failed to get latest version for '{name}': {str(e)}")
-            return None
-
-    def create_feature_view(self, name: str, feature_group_name: str, features: list):
-        try:
-            fg = self.feature_store.get_feature_group(name=feature_group_name, version=1)
-            fv = self.feature_store.get_or_create_feature_view(
+            # Check if feature group exists
+            fg = self.feature_store.get_feature_group(name=name, version=version)
+            fg.insert(df)
+            logger.info(f"Feature Group '{name}' v{version} exists. Data inserted.")
+            return fg
+        except:
+            fg = self.feature_store.create_feature_group(
                 name=name,
-                version=1,
+                version=version,
+                primary_key=primary_key,
+                event_time=event_time,
+                description=description,
+                online_enabled=online_enabled
+            )
+            fg.save(df)
+            logger.info(f"Feature Group '{name}' v{version} created successfully.")
+            return fg
+
+    def create_feature_view(self, name, feature_group_name, features, version=1):
+        try:
+            fv = self.feature_store.get_feature_view(name=name, version=version)
+            if fv is not None:
+                logger.info(f"Feature View '{name}' v{version} already exists.")
+                return fv
+            else:
+                raise Exception("Feature view not found")
+        except Exception:
+            fg = self.feature_store.get_feature_group(name=feature_group_name, version=2)
+            fv = self.feature_store.create_feature_view(
+                name=name,
+                version=version,
                 query=fg.select(features),
                 description=f"Feature View for {name}"
             )
-            logger.info(f"Feature View '{name}' created successfully")
-        except Exception as e:
-            raise CustomException(e, sys)
-        
+            logger.info(f"Feature View '{name}' v{version} created successfully.")
+            return fv
 
     def save_training_dataset(self, feature_view_name, version_description, output_format="csv"):
-        try:
-            fv = self.feature_store.get_feature_view(name=feature_view_name, version=1)
-            td = fv.create_training_data(
-                description=version_description,
-                data_format=output_format,
-                write_options={"wait_for_job": True}
-            )
-            logger.info(f"Training dataset created for Feature View '{feature_view_name}'.")
-            return td
-        except Exception as e:
-            raise CustomException(e, sys)
+        fv = self.feature_store.get_feature_view(name=feature_view_name, version=1)
+        if fv is None:
+            raise Exception(f"Feature view '{feature_view_name}' not found or is None")
         
-    def load_latest_training_dataset(self, feature_view_name):
-        try:
-            fv = self.feature_store.get_feature_view(name=feature_view_name, version=1)
-            return fv.training_data()
-        except Exception as e:
-            raise CustomException(e, sys)
+        td = fv.create_training_data(
+            description=version_description,
+            data_format=output_format,
+            write_options={"wait_for_job": True}
+        )
+        logger.info(f"Training dataset created for Feature View '{feature_view_name}'.")
+        return td
 
+    def get_training_data(self, feature_view_name):
+        fv = self.feature_store.get_feature_view(name=feature_view_name, version=1)
+        X, y = fv.training_data()
+        logger.info(f"Retrieved training data from Feature View '{feature_view_name}'.")
+        return X, y
+    
 
+    def get_online_features(self, feature_view_name, key_dict, version=1):
+        fv = self.feature_store.get_feature_view(name=feature_view_name, version=version)
+        result = fv.get_feature_vector(key_dict)
+        logger.info(f"Retrieved online features for '{feature_view_name}' with key {key_dict}.")
+        return result
+
+    def upload_file(self, local_path, target_name):
+        self.dataset_api.upload(
+            local_path,
+            f"Resources/wattpredictor_artifacts/{target_name}",
+            overwrite=True
+        )
+        logger.info(f"File uploaded to Feature Store: {target_name}")
+
+    def load_model(self, model_name, model_version, model_filename="model.joblib"):
+        model_registry = self.project.get_model_registry()
+        model_meta = model_registry.get_model(name=model_name, version=model_version)
+        model_dir = Path(model_meta.download())
+        model_path = model_dir / model_filename
+        model = joblib.load(model_path)
+        logger.info(f"Model '{model_name}' v{model_version} loaded successfully.")
+        return model
+    
     def upload_file_safely(self, local_path: str, target_name: str):
 
         try:
@@ -149,41 +112,4 @@ class FeatureStore:
             )
             logger.info(f"Uploaded file to Feature Store: {target_name}")
         except Exception as e:
-            raise CustomException(e, sys)
-
-
-    def get_training_data(self, feature_view_name: str):
-        try:
-            fv = self.feature_store.get_feature_view(name=feature_view_name, version=1)
-            X, y = fv.training_data()
-            logger.info(f"Retrieved training data from Feature View '{feature_view_name}'")
-            return X, y
-        except Exception as e:
-            raise CustomException(e, sys)
-    
-    
-    def get_online_features(self, feature_view_name, key_dict: dict, version=1):
-        try:
-            fv = self.feature_store.get_feature_view(name=feature_view_name, version=version)
-            if fv is None:
-                logger.error(f"[Online Fetch] Feature View '{feature_view_name}' v{version} not found.")
-                raise CustomException(f"Feature View '{feature_view_name}' v{version} is None", sys)
-
-            expected_primary_keys = ["date_str", "sub_region_code"]
-            
-            key_values = [key_dict[key] for key in expected_primary_keys]
-            
-            try:
-                result = fv.get_feature_vector(key_dict)
-                logger.info(f"[Online Fetch] Fetched online features using get_feature_vector for {key_dict}: {result}")
-                return result
-            except Exception as vector_error:
-                logger.warning(f"get_feature_vector failed: {vector_error}, trying get_serving_vector")
-                
-                result = fv.get_serving_vector(key_values).to_dict()
-                logger.info(f"[Online Fetch] Fetched online features using get_serving_vector for {key_dict}: {result}")
-                return result
-
-        except Exception as e:
-            logger.error(f"[Online Fetch] Failed to fetch online features for {feature_view_name} with key {key_dict}")
             raise CustomException(e, sys)

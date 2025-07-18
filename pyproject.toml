@@ -9,61 +9,60 @@ packages = [{ include = "WattPredictor", from = "src" }]
 python = ">=3.10,<3.11"
 
 # Core packages
-pandas = "*"
-numpy = "*"
-scikit-learn = "*"
-matplotlib = "*"
-seaborn = "*"
-joblib = "*"
-tqdm = "*"
-scipy = "*"
-pyyaml = "^6.0.1"
-python-box = "*"
-ensure = "*"
-dotenv = "*"
+pandas = "^2.0.3"
+numpy = "^1.25.2"
+scikit-learn = "^1.6.1"
+matplotlib = "^3.7.3"
+seaborn = "^0.12.2"
+joblib = "^1.5.1"
+tqdm = "^4.67.1"
+scipy = "^1.11.4"
+pyyaml = "^6.0.2"
+python-box = "^7.3.2"
+ensure = "^1.0.4"
+python-dotenv = "^1.1.1"
 
 # ML packages
-xgboost = "*"
-lightgbm = "*"
-optuna = "*"
-imblearn = "*"
+xgboost = "^3.0.2"
+lightgbm = "^4.6.0"
+optuna = "^4.4.0"
+imblearn = "^0.0"
 
 # Experiment tracking
-mlflow = "*"
-dagshub = "*"
+mlflow = "^3.1.1"
+dagshub = "^0.2.7"
 
 # Hopsworks & Feature Store
-hopsworks = "*"
-hsfs = "*"
-
-# Evidently + version pinning fix
-evidently = "*"
-pydantic = "1.10.13"
+hopsworks = "^4.2.6"
+hsfs = "^3.7.9"
 
 # MLOps & data versioning
-dvc = "*"
-dvc-s3 = "*"
+evidently = "^0.6.6"
+pydantic = "1.10.13" 
+dvc = "^3.61.0"
+dvc-s3 = "^3.2.2"
 
 # Weather API dependencies
-openmeteo_requests = "*"
-requests_cache = "*"
-retry_requests = "*"
-requests = "*"
+openmeteo_requests = "^1.5.0"
+requests_cache = "^1.2.1"
+retry_requests = "^2.0.0"
+requests = "^2.32.4"
 
 # Environment & config
-python-multipart = "*"
-types-pyyaml = "*"
+python-multipart = "^0.0.20"
+types-pyyaml = "^6.0.12"
 
 # Misc
-gdown = "*"
-boto3 = "*"
-ydata-profiling = "*"
-uvicorn = "*"
+gdown = "^5.2.0"
+boto3 = "^1.38.27"
+ydata-profiling = "^4.6.0"
+uvicorn = "^0.35.0"
 
 [tool.poetry.group.dev.dependencies]
-jupyter = "*"
-ipykernel = "*"
-pytest = "*"
+jupyter = "^1.1.1"
+ipykernel = "^6.29.5"
+pytest = "^8.4.1"
+confluent-kafka = "*"
 
 [build-system]
 requires = ["poetry-core"]

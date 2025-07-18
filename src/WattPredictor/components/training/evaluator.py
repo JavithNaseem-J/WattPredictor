@@ -7,7 +7,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
-from WattPredictor.config.model_config import ModelEvaluationConfig
+from WattPredictor.entity.config_entity import EvaluationConfig
+from WattPredictor.config.model_config import ModelConfigurationManager
 from WattPredictor.utils.feature import feature_store_instance
 from WattPredictor.utils.ts_generator import features_and_target
 from sklearn.metrics import mean_squared_error, mean_absolute_error,root_mean_squared_error, r2_score
@@ -16,13 +17,13 @@ from WattPredictor.utils.exception import CustomException
 from WattPredictor.utils.logging import logger
 
 class Evaluation:
-    def __init__(self, config: ModelEvaluationConfig):
+    def __init__(self, config:EvaluationConfig):
         self.config = config
         self.feature_store = feature_store_instance()
 
     def evaluate(self):
         try:
-            df, _ = self.feature_store.load_latest_training_dataset("elec_wx_features_view")
+            df, _ = self.feature_store.get_training_data("elec_wx_features_view")
             df = df[['date', 'demand', 'sub_region_code', 'temperature_2m']]
             df.sort_values("date", inplace=True)
             

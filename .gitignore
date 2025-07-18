@@ -213,5 +213,5 @@ mlruns/
 artifacts/
 logs/
 .env
-data/
+dataset/
 .dvc/

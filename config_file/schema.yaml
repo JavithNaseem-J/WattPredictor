@@ -11,6 +11,3 @@ columns:
   weather_code: float64
   relative_humidity_2m: float64
   wind_speed_10m: float64
-
-target_column:
-  name: value

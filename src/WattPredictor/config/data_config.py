@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
-from WattPredictor.entity.config_entity import DataIngestionConfig, DataValidationConfig, DataTransformationConfig, DataDriftConfig
+from WattPredictor.entity.config_entity import IngestionConfig, ValidationConfig, EngineeringConfig
 from WattPredictor.utils.helpers import read_yaml, create_directories
-from WattPredictor.constants import CONFIG_PATH, PARAMS_PATH, SCHEMA_PATH
+from WattPredictor.constants.paths import CONFIG_PATH, PARAMS_PATH, SCHEMA_PATH
 
 
 class DataConfigurationManager:
@@ -17,13 +17,13 @@ class DataConfigurationManager:
 
         create_directories([self.config.artifacts_root])
 
-    def get_data_ingestion_config(self) -> DataIngestionConfig:
+    def get_data_ingestion_config(self) -> IngestionConfig:
         config = self.config.data_ingestion
         params = self.params.dates
 
         create_directories([config.root_dir])
 
-        data_ingestion_config = DataIngestionConfig(
+        data_ingestion_config = IngestionConfig(
             root_dir=Path(config.root_dir),
             elec_raw_data=Path(config.elec_raw_data),
             wx_raw_data=Path(config.wx_raw_data),
@@ -38,13 +38,13 @@ class DataConfigurationManager:
         return data_ingestion_config
     
 
-    def get_data_validation_config(self) -> DataValidationConfig:
+    def get_data_validation_config(self) -> ValidationConfig:
         config = self.config.data_validation
         schema = self.schema.columns
         
         create_directories([config.root_dir])
         
-        data_validation_config = DataValidationConfig(
+        data_validation_config = ValidationConfig(
             root_dir=config.root_dir,
             status_file=config.status_file,
             data_file=config.data_file,
@@ -54,13 +54,13 @@ class DataConfigurationManager:
         return data_validation_config
     
 
-    def get_data_transformation_config(self) -> DataTransformationConfig:
+    def get_data_transformation_config(self) -> EngineeringConfig:
         config = self.config.data_transformation
         params = self.params.training
 
         create_directories([config.root_dir])
 
-        data_transformation_config = DataTransformationConfig(
+        data_transformation_config = EngineeringConfig(
             root_dir=Path(config.root_dir),
             data_file=Path(config.data_file),
             status_file=Path(config.status_file),
@@ -69,13 +69,13 @@ class DataConfigurationManager:
 
         return data_transformation_config
     
-    def get_data_drift_config(self) -> DataDriftConfig:
+    def get_data_drift_config(self) -> DriftConfig:
         config = self.config.data_drift
         params = self.params.drift
 
         create_directories([config.root_dir])
         
-        data_drift_cofig =  DataDriftConfig(
+        data_drift_cofig =  DriftConfig(
             baseline_start=self.params.drift.baseline_start,
             baseline_end=self.params.drift.baseline_end,
             current_start=self.params.drift.current_start,

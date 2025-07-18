@@ -7,7 +7,7 @@ class FeatureStoreConfig:
     hopsworks_api_key: str
 
 @dataclass(frozen=True)
-class DataIngestionConfig:
+class IngestionConfig:
     root_dir: Path
     elec_raw_data: Path
     wx_raw_data: Path
@@ -19,22 +19,21 @@ class DataIngestionConfig:
     end_date: str
 
 @dataclass(frozen=True)
-class DataValidationConfig:
+class ValidationConfig:
     root_dir: Path
     data_file: Path
     status_file: Path
     all_schema: dict
 
 @dataclass
-class DataTransformationConfig:
+class EngineeringConfig:
     root_dir: Path
     data_file: Path
     status_file: str
     label_encoder: Path
 
-
 @dataclass
-class ModelTrainerConfig:
+class TrainerConfig:
     root_dir: Path
     input_seq_len: int
     step_size: int
@@ -42,9 +41,8 @@ class ModelTrainerConfig:
     cutoff_date: str
     model_name: Path
 
-
 @dataclass
-class ModelEvaluationConfig:
+class EvaluationConfig:
     root_dir: Path
     model_path: Path
     cutoff_date: str
@@ -54,7 +52,22 @@ class ModelEvaluationConfig:
     metrics_path: Path
 
 @dataclass
-class DataDriftConfig:
+class PredictionConfig:
+    model_name: str
+    model_version: int
+    feature_view_name: str
+    feature_view_version: int
+    n_features: int
+
+@dataclass
+class MonitoringConfig:
+  predictions_fg_name: str
+  predictions_fg_version: int
+  actuals_fg_name: str
+  actuals_fg_version: int
+
+@dataclass
+class DriftConfig:
     baseline_start: str
     baseline_end: str
     current_start: str

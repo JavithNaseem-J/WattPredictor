@@ -9,8 +9,9 @@ from lightgbm import LGBMRegressor
 from xgboost import XGBRegressor
 from WattPredictor.utils.helpers import *
 from WattPredictor.utils.ts_generator import features_and_target
-from WattPredictor.config.model_config import ModelTrainerConfig
+from WattPredictor.config.model_config import ModelConfigurationManager
 from WattPredictor.utils.feature import feature_store_instance
+from WattPredictor.entity.config_entity import TrainerConfig
 from sklearn.model_selection import KFold, train_test_split, cross_val_score
 from sklearn.metrics import mean_squared_error,root_mean_squared_error
 from WattPredictor.utils.helpers import create_directories
@@ -20,7 +21,7 @@ from WattPredictor.utils.logging import logger
 
 
 class Trainer:
-    def __init__(self, config: ModelTrainerConfig):
+    def __init__(self, config: TrainerConfig):
         self.config = config
         self.feature_store =feature_store_instance()
 
@@ -45,7 +46,7 @@ class Trainer:
 
     def load_training_data(self):
         try:
-            df, _ = self.feature_store.load_latest_training_dataset("elec_wx_features_view")
+            df, _ = self.feature_store.get_training_data("elec_wx_features_view")
             df = df[['date', 'demand', 'sub_region_code', 'temperature_2m']]
             df.sort_values("date", inplace=True)
             return df
@@ -88,6 +89,7 @@ class Trainer:
                         "params": best_params
                     })
 
+
             final_model_class = self.models[best_overall["model_name"]]["class"]
             final_model = final_model_class(**best_overall["params"])
             final_model.fit(train_x, train_y)
@@ -96,14 +98,16 @@ class Trainer:
             create_directories([model_path.parent])
             save_bin(final_model, model_path)
 
-            input_schema = Schema(train_x)
+            input_schema = Schema(train_x.head(10))
             output_schema = Schema(pd.DataFrame(train_y))
             model_schema = ModelSchema(input_schema=input_schema, output_schema=output_schema)
+
 
             model_registry = self.feature_store.project.get_model_registry()
             hops_model = model_registry.python.create_model(
                 name="wattpredictor_" + best_overall["model_name"].lower(),
-                input_example=train_x.head(2),
+                metrics = {'rmse':score},
+                input_example=train_x.head(10),
                 model_schema=model_schema,
                 description="Best model trained on electricity demand"
             )

@@ -1,7 +1,7 @@
 from pathlib import Path
-from WattPredictor.entity.config_entity import ModelTrainerConfig, ModelEvaluationConfig
+from WattPredictor.entity.config_entity import TrainerConfig,EvaluationConfig
 from WattPredictor.utils.helpers import read_yaml, create_directories
-from WattPredictor.constants import *
+from WattPredictor.constants.paths import *
 
 
 class ModelConfigurationManager:
@@ -16,13 +16,13 @@ class ModelConfigurationManager:
 
         create_directories([self.config.artifacts_root])
 
-    def get_model_trainer_config(self) -> ModelTrainerConfig:
+    def get_model_trainer_config(self) -> TrainerConfig:
         config = self.config.model_trainer
         params = self.params.training
 
         create_directories([config.root_dir])
 
-        model_trainer_config = ModelTrainerConfig(
+        model_trainer_config = TrainerConfig(
             root_dir=Path(config.root_dir),
             input_seq_len= params.input_seq_len,
             step_size = params.step_size,
@@ -34,13 +34,13 @@ class ModelConfigurationManager:
         return model_trainer_config
     
 
-    def get_model_evaluation_config(self) -> ModelEvaluationConfig:
+    def get_model_evaluation_config(self) -> EvaluationConfig:
         config = self.config.model_evaluation
         params = self.params.training
 
         create_directories([config.root_dir])
         
-        model_evaluation_config =  ModelEvaluationConfig(
+        model_evaluation_config =  EvaluationConfig(
             root_dir=Path(config.root_dir),
             model_path=Path(config.model_path),
             cutoff_date=params.cutoff_date,

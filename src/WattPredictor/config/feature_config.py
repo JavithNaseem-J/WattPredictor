@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from WattPredictor.entity.config_entity import FeatureStoreConfig
 from WattPredictor.utils.helpers import read_yaml, create_directories
-from WattPredictor.constants import *
+from WattPredictor.constants.paths import *
 
 class FeatureConfigurationManager:
     def __init__(self, 
