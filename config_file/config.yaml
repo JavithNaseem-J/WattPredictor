@@ -4,8 +4,8 @@ feature_store:
   hopsworks_project_name: WattPredictor
   hopsworks_api_key: ${hopsworks_api_key}
 
-ingestion:
-  root_dir: data
+dataset:
+  root_dir: dataset
   elec_raw_data: dataset/raw/elec_data
   wx_raw_data: dataset/raw/wx_data
   data_file: dataset/processed/elec_wx_demand.csv
@@ -13,13 +13,13 @@ ingestion:
 validation:
   root_dir: artifacts/validation
   status_file: artifacts/validation/status.json
-  data_file: data/processed/elec_wx_demand.csv
+  data_file: dataset/processed/elec_wx_demand.csv
 
 engineering:
   root_dir: artifacts/engineering
-  data_file: data/processed/elec_wx_demand.csv
   status_file: artifacts/validation/status.json
   label_encoder: artifacts/engineering/label_encoder.pkl
+  data_file: dataset/processed/elec_wx_demand.csv
 
 
 trainer:
@@ -34,17 +34,22 @@ evaluation:
 
 
 prediction:
+    root_dir: artifacts/prediction
     model_name: wattpredictor_lightgbm
     model_version: 1
     feature_view_name: elec_wx_features_view
     feature_view_version: 1
     n_features: 672
+    predictions_df: artifacts/prediction/predictions.csv
 
 monitoring:
+  
+  root_dir: artifacts/monitoring
   predictions_fg_name: elec_wx_predictions
   predictions_fg_version: 2 
   actuals_fg_name: elec_wx_features
   actuals_fg_version: 2
+  monitoring_df: artifacts/monitoring/monitoring_df.csv
 
 
 drift:

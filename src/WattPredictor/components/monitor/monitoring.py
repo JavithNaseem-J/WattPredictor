@@ -1,49 +1,44 @@
-import sys
-from datetime import datetime, timedelta, timezone
 import pandas as pd
-from WattPredictor.utils.logging import logger
+from datetime import datetime, timedelta
 from WattPredictor.utils.exception import CustomException
-from WattPredictor.entity.config_entity import MonitoringConfig
-from WattPredictor.config.inference_config import InferenceConfigurationManager
 from WattPredictor.utils.feature import feature_store_instance
-
+from WattPredictor.config.inference_config import InferenceConfigurationManager
+from WattPredictor.utils.helpers import create_directories
+from WattPredictor.entity.config_entity import MonitoringConfig
+from WattPredictor.utils.logging import logger
 
 class Monitoring:
-    def __init__(self,config: MonitoringConfig):
+    def __init__(self, config: MonitoringConfig):
         self.config = config
         self.feature_store = feature_store_instance()
 
-    def load_predictions_and_actuals(self, from_date: datetime, to_date: datetime) -> pd.DataFrame:
-        try:
-            from_date = from_date.astimezone(timezone.utc)
-            to_date = to_date.astimezone(timezone.utc)
+    def predictions_and_actuals(self):
+        predictions_fg = self.feature_store.feature_store.get_feature_group(
+            name=self.config.predictions_fg_name,
+            version=self.config.predictions_fg_version
+        )
+        actuals_fg = self.feature_store.feature_store.get_feature_group(
+            name=self.config.actuals_fg_name,
+            version=self.config.actuals_fg_version
+        )
+        predictions_df = predictions_fg.read()
+        actuals_df = actuals_fg.read()
 
-            predictions_fg = self.feature_store.feature_store.get_feature_group(
-                name=self.config.predictions_fg_name,
-                version=self.config.predictions_fg_version
-            )
+        predictions_df['date'] = pd.to_datetime(predictions_df['date']).dt.tz_convert('UTC')
+        actuals_df['date'] = pd.to_datetime(actuals_df['date']).dt.tz_convert('UTC')
 
-            actuals_fg = self.feature_store.feature_store.get_feature_group(
-                name=self.config.actuals_fg_name,
-                version=self.config.actuals_fg_version
-            )
+        from_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d 00:00:00")
+        to_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d 23:59:59")
 
-            predictions_df = predictions_fg.read()
-            actuals_df = actuals_fg.read()
+        combined_df = pd.merge(
+            predictions_df,
+            actuals_df[['sub_region_code', 'date', 'demand']],
+            on=['sub_region_code', 'date']
+        )
+        mask = (combined_df['date'] >= from_date) & (combined_df['date'] <= to_date)
+        monitoring_df = combined_df.loc[mask].sort_values(by=['date', 'sub_region_code'])
 
-            combined_df = pd.merge(
-                predictions_df,
-                actuals_df[['sub_region_code', 'date', 'demand']],
-                on=['sub_region_code', 'date'],
-                suffixes=('', '_actual')
-            )
-
-            mask = (combined_df['date'] >= from_date) & (combined_df['date'] <= to_date)
-            filtered_df = combined_df.loc[mask].sort_values(by=['date', 'sub_region_code'])
-
-            logger.info(f"Monitoring data prepared with {len(filtered_df)} records between {from_date} and {to_date}.")
-            return filtered_df
-
-        except Exception as e:
-            logger.error("Failed to load monitoring data.")
-            raise CustomException(e, sys)
+        create_directories([self.config.monitoring_df.parent])
+        monitoring_df.to_csv(self.config.monitoring_df, index=False)
+        logger.info(f"Monitoring data saved to {self.config.monitoring_df}")
+        return monitoring_df

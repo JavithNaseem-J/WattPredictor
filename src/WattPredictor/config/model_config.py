@@ -17,7 +17,7 @@ class ModelConfigurationManager:
         create_directories([self.config.artifacts_root])
 
     def get_model_trainer_config(self) -> TrainerConfig:
-        config = self.config.model_trainer
+        config = self.config.trainer
         params = self.params.training
 
         create_directories([config.root_dir])
@@ -27,7 +27,7 @@ class ModelConfigurationManager:
             input_seq_len= params.input_seq_len,
             step_size = params.step_size,
             n_trials=params.n_trials,
-            cutoff_date = params.cutoff_date,
+            cv_folds=params.cv_folds,
             model_name = Path(config.model_name)
         )
 
@@ -35,7 +35,7 @@ class ModelConfigurationManager:
     
 
     def get_model_evaluation_config(self) -> EvaluationConfig:
-        config = self.config.model_evaluation
+        config = self.config.evaluation
         params = self.params.training
 
         create_directories([config.root_dir])
@@ -43,7 +43,6 @@ class ModelConfigurationManager:
         model_evaluation_config =  EvaluationConfig(
             root_dir=Path(config.root_dir),
             model_path=Path(config.model_path),
-            cutoff_date=params.cutoff_date,
             input_seq_len= params.input_seq_len,
             step_size = params.step_size,
             img_path=Path(config.img_path),

@@ -1,62 +1,47 @@
 stages:
-  data_ingestion:
-    cmd: python main.py --stage data_ingestion
+  feature_pipeline:
+    cmd: python main.py --stage feature_pipeline
     deps:
-      - src/WattPredictor/pipeline/stage01_ingestion.py
+      - src/WattPredictor/pipeline/feature_pipeline.py
       - config_file/config.yaml
-    outs:
-      - data/processed
-
-  data_validation:
-    cmd: python main.py --stage data_validation
-    deps:
-      - src/WattPredictor/pipeline/stage02_validation.py
-      - data/processed/elec_wx_demand.csv
-      - config_file/config.yaml
+      - config_file/params.yaml
       - config_file/schema.yaml
     outs:
-      - artifacts/data_validation/status.json
+      - dataset/processed/elec_wx_demand.csv
+      - artifacts/engineering/label_encoder.pkl
 
-  data_transformation:
-    cmd: python main.py --stage data_transformation
+  training_pipeline:
+    cmd: python main.py --stage training_pipeline
     deps:
-      - src/WattPredictor/pipeline/stage03_transformation.py
+      - src/WattPredictor/pipeline/training_pipeline.py
+      - dataset/processed/elec_wx_demand.csv
+      - artifacts/engineering/label_encoder.pkl
       - config_file/config.yaml
+      - config_file/params.yaml
       - config_file/schema.yaml
-      - config_file/params.yaml
-      - artifacts/data_validation/status.json
     outs:
-      - artifacts/data_transformation/label_encoder.pkl
+      - artifacts/trainer/model.joblib
 
-  model_trainer:
-    cmd: python main.py --stage model_training
+  inference_pipeline:
+    cmd: python main.py --stage inference_pipeline
     deps:
-      - src/WattPredictor/pipeline/stage04_trainer.py
+      - src/WattPredictor/pipeline/inference_pipeline.py
+      - artifacts/trainer/model.joblib
       - config_file/config.yaml
       - config_file/params.yaml
-
+      - config_file/schema.yaml
     outs:
-      - artifacts/model_trainer/model.joblib
+      - artifacts/prediction/predictions.csv
 
-  model_evaluation:
-    cmd: python main.py --stage model_evaluation
+  monitoring_pipeline:
+    cmd: python main.py --stage monitoring_pipeline
     deps:
-      - src/WattPredictor/pipeline/stage05_evaluation.py
+      - src/WattPredictor/pipeline/monitoring_pipeline.py
+      - artifacts/prediction/predictions.csv
       - config_file/config.yaml
       - config_file/params.yaml
-      - artifacts/model_trainer/model.joblib
+      - config_file/schema.yaml
     outs:
-      - artifacts/model_evaluation/metrics.json
-
-  data_drift:
-    cmd: python main.py --stage drift_detection
-    deps:
-      - src/WattPredictor/pipeline/stage06_drift.py
-      - config_file/config.yaml
-      - config_file/params.yaml
-
-    outs:
-      - artifacts/data_drift/drift_report.html
-      - artifacts/data_drift/drift_report.json
-
+      - artifacts/monitoring/monitoring_df.csv
+      - artifacts/drift/
 

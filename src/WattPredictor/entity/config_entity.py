@@ -15,8 +15,7 @@ class IngestionConfig:
     wx_api: str
     elec_api_key: str
     data_file: Path
-    start_date: str
-    end_date: str
+    
 
 @dataclass(frozen=True)
 class ValidationConfig:
@@ -38,14 +37,13 @@ class TrainerConfig:
     input_seq_len: int
     step_size: int
     n_trials: int
-    cutoff_date: str
+    cv_folds: int
     model_name: Path
 
 @dataclass
 class EvaluationConfig:
     root_dir: Path
     model_path: Path
-    cutoff_date: str
     input_seq_len: int
     step_size: int
     img_path: Path
@@ -58,18 +56,16 @@ class PredictionConfig:
     feature_view_name: str
     feature_view_version: int
     n_features: int
+    predictions_df: Path
 
 @dataclass
 class MonitoringConfig:
-  predictions_fg_name: str
-  predictions_fg_version: int
-  actuals_fg_name: str
-  actuals_fg_version: int
+    predictions_fg_name: str
+    predictions_fg_version: int
+    actuals_fg_name: str
+    actuals_fg_version: int
+    monitoring_df: Path
 
 @dataclass
 class DriftConfig:
-    baseline_start: str
-    baseline_end: str
-    current_start: str
-    current_end: str
     report_dir: Path

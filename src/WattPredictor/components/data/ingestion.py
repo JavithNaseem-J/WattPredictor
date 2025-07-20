@@ -12,18 +12,16 @@ from dotenv import load_dotenv
 from WattPredictor.utils.logging import logger
 from WattPredictor.utils.exception import CustomException
 from WattPredictor.utils.helpers import create_directories, save_json, load_json
-from WattPredictor.entity.config_entity import DataIngestionConfig
+from WattPredictor.entity.config_entity import IngestionConfig
 from WattPredictor.config.data_config import DataConfigurationManager
-from WattPredictor.utils.feature import feature_store_instance
 
 cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
 retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
 load_dotenv()
 
 class Ingestion:
-    def __init__(self, config: DataIngestionConfig):
+    def __init__(self, config: IngestionConfig):
         self.config = config
-        self.feature_store = feature_store_instance()
         self.openmeteo = openmeteo_requests.Client(session=retry_session)
 
     def _elec_get_api(self, year, month, day):
@@ -111,8 +109,11 @@ class Ingestion:
 
     def download(self):
         try:
-            start = pd.to_datetime(self.config.start_date, utc=True)
-            end = pd.to_datetime(self.config.end_date, utc=True)
+            end = datetime.now().strftime("%Y-%m-%d")
+            start = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+
+            start = pd.to_datetime(start, utc=True)
+            end = pd.to_datetime(end, utc=True)
 
             current = start
             elec_data = []
@@ -139,15 +140,7 @@ class Ingestion:
                 logger.warning("Merged DataFrame is empty after join.")
                 return pd.DataFrame()
 
-            self.feature_store.create_feature_group(
-                name="elec_wx_demands",
-                df=combined_df,
-                primary_key=["date_str", "subba"], 
-                event_time="date",
-                description="Merged electricity demand and weather data for WattPredictor"
-            )
 
-            # Save locally
             create_directories([self.config.data_file.parent])
             combined_df.to_csv(self.config.data_file, index=False)
             logger.info(f"Saved combined dataset to {self.config.data_file}")

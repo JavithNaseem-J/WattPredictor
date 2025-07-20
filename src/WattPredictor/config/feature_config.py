@@ -11,8 +11,6 @@ class FeatureConfigurationManager:
                  schema_filepath=SCHEMA_PATH):
 
         self.config = read_yaml(config_filepath)
-        self.params = read_yaml(params_filepath)
-        self.schema = read_yaml(schema_filepath)
         
 
     def get_feature_store_config(self) -> FeatureStoreConfig:

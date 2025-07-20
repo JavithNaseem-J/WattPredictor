@@ -2,13 +2,13 @@ import os
 import json
 import pandas as pd
 from WattPredictor.utils.logging import logger
-from WattPredictor.entity.config_entity import DataValidationConfig
+from WattPredictor.entity.config_entity import ValidationConfig
 from WattPredictor.config.data_config import DataConfigurationManager
 from WattPredictor.utils.helpers import create_directories
 from WattPredictor.utils.exception import CustomException
 
 class Validation:
-    def __init__(self, config: DataValidationConfig):
+    def __init__(self, config: ValidationConfig):
         self.config = config
 
     def validate_data_types(self, data: pd.DataFrame, schema: dict):
@@ -42,13 +42,13 @@ class Validation:
             return False
         return True
     
-    def check_missing_values(self, data: pd.DataFrame) -> bool:
-        missing = data.isnull().sum()
-        if missing.any():
-            logger.error(f"Missing values detected:\n{missing[missing > 0]}")
+    def check_missing_values(self, data: pd.DataFrame, threshold: float = 0.05) -> bool:
+        missing_percent = data.isnull().mean()
+        flagged = missing_percent[missing_percent > threshold]
+        if not flagged.empty:
+            logger.error(f"Columns exceeding {threshold*100}% missing:\n{flagged}")
             return False
         return True
-
 
 
     def validator(self):

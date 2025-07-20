@@ -1,42 +1,28 @@
-import argparse
 from WattPredictor.config.data_config import DataConfigurationManager
 from WattPredictor.components.data.ingestion import Ingestion
 from WattPredictor.components.data.validation import Validation
 from WattPredictor.components.features.engineering import Engineering
+from WattPredictor.utils.exception import CustomException
+
 
 
 class FeaturePipeline:
     def __init__(self):
-        self.data_config = DataConfigurationManager()
+        pass
 
-    def run(self, step="all"):
-        if step in ("all", "ingestion"):
-            ingestion_config = self.data_config.get_data_ingestion_config()
-            ingestion = Ingestion(config=ingestion_config)
-            raw_data = ingestion.download()
+    def run(self):
 
-        if step in ("all", "validation"):
-            data_validation_config = self.data_config.get_data_validation_config()
-            data_validation = Validation(data_validation_config)
-            data_validation.validator()
+        config = DataConfigurationManager()
 
-        if step in ("all", "engineering"):
-            engineering_config = self.data_config.get_data_transformation_config()
-            transformation = Engineering(config=engineering_config)
-            transformed_data = transformation.transform()
-            return transformed_data
+        ingestion_config = config.get_data_ingestion_config()
+        ingestor = Ingestion(config=ingestion_config)
+        ingestor.download()
 
+        validation_config = config.get_data_validation_config()
+        validator = Validation(config=validation_config)
+        validator.validator()
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--step",
-        type=str,
-        default="all",
-        choices=["all", "ingestion", "validation", "engineering"],
-        help="Specify which step of the pipeline to run"
-    )
-    args = parser.parse_args()
+        transformation_config = config.get_data_transformation_config()
+        transformer = Engineering(config=transformation_config)
+        transformer.transform()
 
-    pipeline = FeaturePipeline()
-    pipeline.run(step=args.step)

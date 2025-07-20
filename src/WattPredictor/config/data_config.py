@@ -18,8 +18,7 @@ class DataConfigurationManager:
         create_directories([self.config.artifacts_root])
 
     def get_data_ingestion_config(self) -> IngestionConfig:
-        config = self.config.data_ingestion
-        params = self.params.dates
+        config = self.config.dataset
 
         create_directories([config.root_dir])
 
@@ -30,16 +29,14 @@ class DataConfigurationManager:
             elec_api= os.environ['elec_api'],
             wx_api= os.environ['wx_api'],
             elec_api_key= os.environ['elec_api_key'],
-            data_file=Path(config.data_file),
-            start_date=params.start_date,
-            end_date=params.end_date
+            data_file=Path(config.data_file)
         )
 
         return data_ingestion_config
     
 
     def get_data_validation_config(self) -> ValidationConfig:
-        config = self.config.data_validation
+        config = self.config.validation
         schema = self.schema.columns
         
         create_directories([config.root_dir])
@@ -55,32 +52,17 @@ class DataConfigurationManager:
     
 
     def get_data_transformation_config(self) -> EngineeringConfig:
-        config = self.config.data_transformation
+        config = self.config.engineering
         params = self.params.training
 
         create_directories([config.root_dir])
 
         data_transformation_config = EngineeringConfig(
             root_dir=Path(config.root_dir),
-            data_file=Path(config.data_file),
             status_file=Path(config.status_file),
+            data_file=config.data_file,
             label_encoder=Path(config.label_encoder)
         )
 
         return data_transformation_config
     
-    def get_data_drift_config(self) -> DriftConfig:
-        config = self.config.data_drift
-        params = self.params.drift
-
-        create_directories([config.root_dir])
-        
-        data_drift_cofig =  DriftConfig(
-            baseline_start=self.params.drift.baseline_start,
-            baseline_end=self.params.drift.baseline_end,
-            current_start=self.params.drift.current_start,
-            current_end=self.params.drift.current_end,
-            report_dir=Path(config.report_dir)
-        )
-        
-        return data_drift_cofig

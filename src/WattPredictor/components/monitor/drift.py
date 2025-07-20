@@ -3,6 +3,7 @@ import sys
 import json
 import pandas as pd
 from pathlib import Path
+from datetime import datetime, timedelta
 from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset
 from evidently.metrics import (DatasetDriftMetric,ColumnDriftMetric,ColumnSummaryMetric)
@@ -33,8 +34,8 @@ class Drift:
 
     def Detect(self):
         try:
-            baseline_df = self._load_data(self.config.baseline_start, self.config.baseline_end)
-            current_df = self._load_data(self.config.current_start, self.config.current_end)
+            baseline_df = self._load_data((datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d"), (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d"))
+            current_df = self._load_data((datetime.now() - timedelta(days=29)).strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"))
 
             report = Report(metrics=[
                 DataDriftPreset(),

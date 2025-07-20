@@ -1,26 +1,23 @@
-from WattPredictor.config.data_config import DataConfigurationManager
-from WattPredictor.config.model_config import ModelConfigurationManager
+from datetime import datetime, timedelta
+from WattPredictor.config.inference_config import InferenceConfigurationManager
+from WattPredictor.components.monitor.monitoring import Monitoring
 from WattPredictor.components.monitor.drift import Drift
-from src.WattPredictor.components.training.evaluator import Evaluation
+from WattPredictor.utils.exception import CustomException
+
 
 class MonitoringPipeline:
     def __init__(self):
         pass
 
     def run(self):
-        data_config = DataConfigurationManager()
-        model_config = ModelConfigurationManager
+        config = InferenceConfigurationManager()
 
-        drift_config = data_config.get_data_drift_config()
-        drift_detector = Drift(config=drift_config)
-        drift_detected, drift_report = drift_detector.Drift()
 
-        evaluator_config = model_config.get_model_evaluation_config()
-        evaluator = Evaluation(config=evaluator_config)
-        evaluation_metrics = evaluator.evaluate()
+        monitor_config = config.get_data_monitoring_config()
+        monitor = Monitoring(config=monitor_config)
+        monitor.predictions_and_actuals()
 
-        return {
-            "drift_detected": drift_detected,
-            "drift_report": drift_report,
-            "evaluation_metrics": evaluation_metrics
-        }
+        drift_config = config.get_data_drift_config()
+        drift = Drift(config=drift_config)
+        drift.Detect()
+

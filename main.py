@@ -4,6 +4,7 @@ import argparse
 from WattPredictor.utils.logging import logger
 from WattPredictor.pipeline.feature_pipeline import FeaturePipeline
 from WattPredictor.pipeline.training_pipeline import TrainingPipeline
+from WattPredictor.pipeline.inference_pipeline import InferencePipeline
 from WattPredictor.pipeline.monitoring_pipeline import MonitoringPipeline
 from WattPredictor.utils.exception import CustomException
 
@@ -22,10 +23,10 @@ def run_pipeline(stage: str):
             output = pipeline.run()
             logger.info("Training Pipeline completed.")
 
-        #elif stage == "inference_pipeline":
-            #pipeline = InferencePipeline()
-            #output = pipeline.run()
-            #logger.info(f"Inference completed. Predictions: {output}")
+        elif stage == "inference_pipeline":
+            pipeline = InferencePipeline()
+            output = pipeline.run()
+            logger.info(f"Inference completed. Predictions: {output}")
 
         elif stage == "monitoring_pipeline":
             pipeline = MonitoringPipeline()
@@ -47,7 +48,7 @@ def run_pipeline(stage: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run ML pipelines for WattPredictor")
 
-    parser.add_argument("--stage", type=str, help="Specify pipeline stage: feature_pipeline, training_pipeline, inference_pipeline, monitoring_pipeline")
+    parser.add_argument("--stage", type=str, help="Specify pipeline stage")
 
     args = parser.parse_args()
 
@@ -58,6 +59,7 @@ if __name__ == "__main__":
         stages = [
             "feature_pipeline",
             "training_pipeline",
+            "inference_pipeline",
             "monitoring_pipeline"
         ]
 
