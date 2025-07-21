@@ -21,19 +21,17 @@ pyyaml = "^6.0.2"
 python-box = "^7.3.2"
 ensure = "^1.0.4"
 python-dotenv = "^1.1.1"
+streamlit-folium = "*"
+streamlit = "*"
 
 # ML packages
 xgboost = "^3.0.2"
 lightgbm = "^4.6.0"
 optuna = "^4.4.0"
-imblearn = "^0.0"
 
-# Experiment tracking
-mlflow = "^3.1.1"
-dagshub = "^0.2.7"
 
 # Hopsworks & Feature Store
-hopsworks = "^4.2.6"
+hopsworks = "^4.2.*"
 hsfs = "^3.7.9"
 
 # MLOps & data versioning
@@ -41,6 +39,8 @@ evidently = "^0.6.6"
 pydantic = "1.10.13" 
 dvc = "^3.61.0"
 dvc-s3 = "^3.2.2"
+geopandas = "^1.1.1"
+pydeck = "*"
 
 # Weather API dependencies
 openmeteo_requests = "^1.5.0"

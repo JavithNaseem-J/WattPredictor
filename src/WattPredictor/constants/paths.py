@@ -1,6 +1,6 @@
 from pathlib import Path
 
-
-CONFIG_PATH = Path("config_file/config.yaml")
-PARAMS_PATH = Path("config_file/params.yaml")
-SCHEMA_PATH = Path("config_file/schema.yaml")
+BASE_DIR = Path("F:/WattPredictor")
+CONFIG_PATH = BASE_DIR / "config_file/config.yaml"
+PARAMS_PATH = BASE_DIR / "config_file/params.yaml"
+SCHEMA_PATH = BASE_DIR / "config_file/schema.yaml"
