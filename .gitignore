@@ -213,6 +213,6 @@ mlruns/
 artifacts/
 logs/
 .env
-dataset/
+data/
 .dvc/
 remote/

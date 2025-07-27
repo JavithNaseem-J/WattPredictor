@@ -7,15 +7,14 @@ stages:
       - config_file/params.yaml
       - config_file/schema.yaml
     outs:
-      - dataset/processed/elec_wx_demand.csv
-      - artifacts/engineering/label_encoder.pkl
+      - data/processed/elec_wx_demand.csv
+      - artifacts/engineering/preprocessed.csv
 
   training_pipeline:
     cmd: python main.py --stage training_pipeline
     deps:
       - src/WattPredictor/pipeline/training_pipeline.py
-      - dataset/processed/elec_wx_demand.csv
-      - artifacts/engineering/label_encoder.pkl
+      - artifacts/engineering/preprocessed.csv
       - config_file/config.yaml
       - config_file/params.yaml
       - config_file/schema.yaml

@@ -1,6 +1,6 @@
 from WattPredictor.config.data_config import DataConfigurationManager
-from WattPredictor.components.data.ingestion import Ingestion
-from WattPredictor.components.data.validation import Validation
+from WattPredictor.components.features.ingestion import Ingestion
+from WattPredictor.components.features.validation import Validation
 from WattPredictor.components.features.engineering import Engineering
 from WattPredictor.utils.exception import CustomException
 

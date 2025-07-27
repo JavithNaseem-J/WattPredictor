@@ -17,15 +17,20 @@ class Evaluation:
         self.feature_store = feature_store_instance()
 
     def evaluate(self):
+        logger.info("Starting model evaluation process")
         df, _ = self.feature_store.get_training_data("elec_wx_features_view")
+
         df = df[['date', 'demand', 'sub_region_code', 'temperature_2m', 
                  'hour', 'day_of_week', 'month', 'is_weekend', 'is_holiday']]
+        
         df.sort_values("date", inplace=True)
+
         if df.empty:
             raise CustomException("Loaded DataFrame is empty", None)
 
         cutoff_date = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
         train_df, test_df = df[df['date'] < cutoff_date], df[df['date'] >= cutoff_date]
+
         if test_df.empty:
             raise CustomException("Test DataFrame is empty after applying cutoff_date", None)
 
@@ -37,18 +42,40 @@ class Evaluation:
             raise CustomException(f"Non-numeric columns found in test_x: {non_numeric_cols}", None)
 
         model_registry = self.feature_store.project.get_model_registry()
-        model_name = "wattpredictor_xgboost"
-        models = model_registry.get_models(model_name)
-        if not models:
-            model_name = "wattpredictor_lightgbm"
-            models = model_registry.get_models(model_name)
-            if not models:
-                raise CustomException(f"No models found with names 'wattpredictor_xgboost' or 'wattpredictor_lightgbm'", None)
+        model_names = ["wattpredictor_xgboost", "wattpredictor_lightgbm"]
+        all_models = []
         
-        latest_model = max(models, key=lambda m: m.version)
-        model_dir = latest_model.download()
+        for model_name in model_names:
+            models = model_registry.get_models(model_name)
+            if models:
+                all_models.extend([(model, model_name) for model in models])
+        
+        if not all_models:
+            raise CustomException("No models found with names 'wattpredictor_xgboost' or 'wattpredictor_lightgbm'", None)
+        
+        selected_model = None
+        selected_model_name = None
+        best_rmse = float("inf")
+
+        for model, model_name in all_models:
+            try:
+                rmse = model.metrics.get("rmse", float("inf")) if hasattr(model, 'metrics') else float("inf")
+                if rmse < best_rmse:
+                    best_rmse = rmse
+                    selected_model = model
+                    selected_model_name ==model_name
+            except AttributeError:
+                logger.warning(f"Model {model_name} v{model.version} has no 'metrics' attribute")
+        
+        if selected_model is None:
+            # Fallback to the latest version
+            selected_model, selected_model_name = max(all_models, key=lambda x: x[0].version)
+            logger.warning(f"No metrics available, using latest model: {selected_model_name} v{selected_model.version}")
+
+        model_dir = selected_model.download()
         model_path = Path(model_dir) / "model.joblib"
         pipeline = joblib.load(model_path)
+        logger.info(f"Loaded model {selected_model_name} v{selected_model.version} for evaluation")
 
         test_x_transformed = test_x.copy()
         test_x_transformed = average_demand_last_4_weeks(test_x_transformed)
@@ -59,31 +86,31 @@ class Evaluation:
         mape = mean_absolute_percentage_error(test_y, preds) * 100
         rmse = root_mean_squared_error(test_y, preds)
         r2 = r2_score(test_y, preds)
-        adjusted_r2 = 1 - (1 - r2) * (len(test_y) - 1) / (len(test_y) - test_x_transformed.shape[1] - 1)
 
         metrics = {
+            "model_name": selected_model_name,
+            "model_version": selected_model.version,
             "mse": mse,
             "mae": mae,
             "mape": mape,
             "rmse": rmse,
             "r2_score": r2,
-            "adjusted_r2": adjusted_r2
         }
 
         create_directories([Path(self.config.metrics_path).parent])
         save_json(self.config.metrics_path, metrics)
         create_directories([Path(self.config.img_path).parent])
         fig, ax = plt.subplots(figsize=(12, 6))
-        ax.plot(test_y[:100], label="Actual", color="blue")
-        ax.plot(preds[:100], label="Predicted", color="red")
-        ax.set_title("Predicted vs Actual (First 100 Points)")
+        ax.plot(test_y[:250], label="Actual", color="blue")
+        ax.plot(preds[:250], label="Predicted", color="red")
+        ax.set_title(f"Predicted vs Actual (First 100 Points) - {selected_model_name} v{selected_model.version}")
         ax.set_xlabel("Time Step")
-        ax.set_ylabel("Electricity Demand")
+        ax.set_ylabel("Electricity Demand (MWh)")
         ax.legend()
         fig.savefig(self.config.img_path)
         plt.close()
 
-        self.feature_store.upload_file_safely(self.config.metrics_path, "eval/metrics.json")
-        self.feature_store.upload_file_safely(self.config.img_path, "eval/pred_vs_actual.png")
-        logger.info("Evaluation results uploaded to Hopsworks")
+        self.feature_store.upload_file_safely(self.config.metrics_path, f"eval/metrics_{selected_model_name}_v{selected_model.version}.json")
+        self.feature_store.upload_file_safely(self.config.img_path, f"eval/pred_vs_actual_{selected_model_name}_v{selected_model.version}.png")
+        logger.info(f"Evaluation completed for {selected_model_name} v{selected_model.version} with RMSE {rmse:.4f}")
         return metrics

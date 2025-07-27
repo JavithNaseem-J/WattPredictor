@@ -31,7 +31,7 @@ optuna = "^4.4.0"
 
 
 # Hopsworks & Feature Store
-hopsworks = "^4.2.*"
+hopsworks = "^4.2.3"
 hsfs = "^3.7.9"
 
 # MLOps & data versioning

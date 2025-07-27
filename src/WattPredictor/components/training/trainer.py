@@ -36,15 +36,18 @@ class Trainer:
 
     def load_training_data(self):
         df, _ = self.feature_store.get_training_data("elec_wx_features_view")
+        
         df = df[['date', 'demand', 'sub_region_code', 'temperature_2m', 
                  'hour', 'day_of_week', 'month', 'is_weekend', 'is_holiday']]
         df.sort_values("date", inplace=True)
         return df
 
     def train(self):
+        logger.info("Starting model training process")
         df = self.load_training_data()
         if df.empty:
             raise CustomException("Loaded DataFrame is empty", None)
+        
         cutoff_date = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
         train_df, test_df = df[df['date'] < cutoff_date], df[df['date'] >= cutoff_date]
         if train_df.empty or test_df.empty:
@@ -63,6 +66,7 @@ class Trainer:
         best_overall = {"model_name": None, "score": float("inf"), "params": None}
 
         for model_name, model_info in self.models.items():
+            logger.info(f"Optimizing hyperparameters for {model_name}")
             def objective(trial):
                 params = model_info["search_space"](trial)
                 pipeline = get_pipeline(model_type=model_name, **params)
@@ -79,6 +83,7 @@ class Trainer:
             score = -cross_val_score(pipeline, train_x, train_y, cv=KFold(n_splits=self.config.cv_folds), 
                                      scoring="neg_root_mean_squared_error").mean()
 
+            logger.info(f"{model_name} RMSE: {score:.4f}")
             if score < best_overall["score"]:
                 best_overall.update({
                     "model_name": model_name,
@@ -98,12 +103,14 @@ class Trainer:
         model_schema = ModelSchema(input_schema=input_schema, output_schema=output_schema)
 
         model_registry = self.feature_store.project.get_model_registry()
+        training_timestamp = datetime.now().isoformat()
         hops_model = model_registry.python.create_model(
             name=f"wattpredictor_{best_overall['model_name'].lower()}",
-            metrics={'rmse': best_overall["score"]},
+            metrics={"rmse": best_overall["score"]},
+            description=f"Model trained on data up to {cutoff_date}. Training timestamp: {training_timestamp}",
             input_example=train_x_transformed.head(10),
             model_schema=model_schema
         )
         hops_model.save(model_path.as_posix())
-        logger.info(f"Best model registered: {best_overall['model_name']} with RMSE {best_overall['score']}")
+        logger.info(f"Best model registered: {best_overall['model_name']} v{hops_model.version} with RMSE {best_overall['score']:.4f}")
         return best_overall

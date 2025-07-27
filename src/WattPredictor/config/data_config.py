@@ -18,7 +18,7 @@ class DataConfigurationManager:
         create_directories([self.config.artifacts_root])
 
     def get_data_ingestion_config(self) -> IngestionConfig:
-        config = self.config.dataset
+        config = self.config.data
 
         create_directories([config.root_dir])
 
@@ -61,7 +61,7 @@ class DataConfigurationManager:
             root_dir=Path(config.root_dir),
             status_file=Path(config.status_file),
             data_file=config.data_file,
-            label_encoder=Path(config.label_encoder)
+            preprocessed=Path(config.preprocessed)
         )
 
         return data_transformation_config

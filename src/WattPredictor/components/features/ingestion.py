@@ -109,8 +109,9 @@ class Ingestion:
 
     def download(self):
         try:
-            end = datetime.now().strftime("%Y-%m-%d")
-            start = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+            now = datetime.now().replace(minute=0, second=0, microsecond=0)
+            start = now - timedelta(days=365)
+            end = now
 
             start = pd.to_datetime(start, utc=True)
             end = pd.to_datetime(end, utc=True)
@@ -139,7 +140,6 @@ class Ingestion:
             if combined_df.empty:
                 logger.warning("Merged DataFrame is empty after join.")
                 return pd.DataFrame()
-
 
             create_directories([self.config.data_file.parent])
             combined_df.to_csv(self.config.data_file, index=False)

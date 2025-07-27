@@ -29,7 +29,7 @@ class EngineeringConfig:
     root_dir: Path
     data_file: Path
     status_file: str
-    label_encoder: Path
+    preprocessed: Path
 
 @dataclass
 class TrainerConfig:

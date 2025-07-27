@@ -26,9 +26,6 @@ class Engineering:
         df['sub_region_code'] = le.fit_transform(df['subba'])
         df.rename(columns={'subba': 'sub_region', 'value': 'demand'}, inplace=True)
         df = df[['date_str', 'date', 'sub_region_code', 'demand', 'temperature_2m']]
-        create_directories([Path(self.config.label_encoder).parent])
-        save_bin(le, self.config.label_encoder)
-        self.feature_store.upload_file_safely(self.config.label_encoder, "label_encoder.pkl")
         return df
 
     def feature_engineering(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -68,5 +65,8 @@ class Engineering:
             version_description="Training dataset with essential features for electricity demand prediction",
             output_format="csv"
         )
-        logger.info("Feature view 'elec_wx_features_view' created successfully")
+
+        create_directories([self.config.preprocessed.parent])
+        df.to_csv(self.config.preprocessed,index=False)
+        logger.info("Feature view 'elec_wx_features_view' created and preprocessed data stored successfully")
         return df

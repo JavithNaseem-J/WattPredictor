@@ -43,7 +43,7 @@ class Validation:
         return True
     
     def check_missing_values(self, data: pd.DataFrame, threshold: float = 0.05) -> bool:
-        missing_percent = data.isnull().mean()
+        missing_percent = data[['date_str', 'date', 'subba', 'value', 'temperature_2m']].isnull().mean()
         flagged = missing_percent[missing_percent > threshold]
         if not flagged.empty:
             logger.error(f"Columns exceeding {threshold*100}% missing:\n{flagged}")

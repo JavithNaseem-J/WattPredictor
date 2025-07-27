@@ -12,11 +12,11 @@ from WattPredictor.utils.logging import logger
 from WattPredictor.utils.plot import plot_one_sample
 import os
 from dotenv import load_dotenv
-load_dotenv() 
+load_dotenv()
 
 st.set_page_config(layout="wide")
 
-current_date = (datetime.now() - timedelta(days=1)).replace(hour=4, minute=0, second=0, microsecond=0)
+current_date = datetime.now().replace(minute=0, second=0, microsecond=0)
 st.title("Electricity Demand Prediction ⚡")
 st.header(f"{current_date} UTC")
 
@@ -39,7 +39,6 @@ nyiso_zones = {
     10: {"name": "Long Island", "lat": 40.7891, "lon": -73.1350}
 }
 
-# Create GeoDataFrame for NYISO zones
 def create_nyiso_geo_df():
     zones = []
     for zone_id, info in nyiso_zones.items():
@@ -53,7 +52,6 @@ def create_nyiso_geo_df():
     gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude))
     return gdf
 
-# Load predictions from feature store
 def load_predictions_from_store(from_date: datetime, to_date: datetime) -> pd.DataFrame:
     fs = feature_store_instance()
     try:
@@ -62,16 +60,25 @@ def load_predictions_from_store(from_date: datetime, to_date: datetime) -> pd.Da
             version=2
         )
         if predictions_fg is None:
-            raise Exception("Feature group 'elec_wx_predictions' v1 not found.")
+            raise Exception("Feature group 'elec_wx_predictions' v2 not found.")
         predictions_df = predictions_fg.read()
         predictions_df["date"] = pd.to_datetime(predictions_df["date"]).dt.tz_convert("UTC")
         mask = (predictions_df["date"] >= from_date) & (predictions_df["date"] <= to_date)
-        return predictions_df[mask]
+        filtered_df = predictions_df[mask]
+        if filtered_df.empty:
+            for i in range(1, 7):
+                fallback_date = to_date - timedelta(hours=i)
+                mask = (predictions_df["date"] >= fallback_date) & (predictions_df["date"] <= fallback_date)
+                filtered_df = predictions_df[mask]
+                if not filtered_df.empty:
+                    logger.warning(f"No predictions for {to_date}, using predictions from {fallback_date}")
+                    return filtered_df
+            raise Exception("No predictions available for the last 6 hours.")
+        return filtered_df
     except Exception as e:
         logger.error(f"Failed to load predictions feature group: {str(e)}")
-        return pd.DataFrame()  # Return empty DataFrame as fallback
+        return pd.DataFrame()
 
-# Initialize Predictor
 config = InferenceConfigurationManager().get_data_prediction_config()
 predictor = Predictor(config=config)
 
@@ -86,31 +93,19 @@ with st.spinner(text="Fetching model predictions from the store"):
     )
     progress_bar.progress(2 / N_STEPS)
 
-# Check if predictions for the current date are available
 next_hour_predictions_ready = not predictions_df.empty and not predictions_df[predictions_df.date == current_date].empty
-prev_hour_predictions_ready = not predictions_df.empty and not predictions_df[predictions_df.date == (current_date - timedelta(hours=1))].empty
-
 if next_hour_predictions_ready:
     predictions_df = predictions_df[predictions_df.date == current_date]
 else:
-    with st.spinner(text="Fetching batch of data"):
-        features = predictor._load_batch_features(current_date)
-        progress_bar.progress(3 / N_STEPS)
-
     with st.spinner(text="Computing model predictions"):
+        features = predictor._load_batch_features(current_date)
         predictions_df = predictor.predict(save_to_store=True)
         progress_bar.progress(4 / N_STEPS)
-
-    next_hour_predictions_ready = not predictions_df.empty and not predictions_df[predictions_df.date == current_date].empty
-    if next_hour_predictions_ready:
+    if not predictions_df.empty and not predictions_df[predictions_df.date == current_date].empty:
         predictions_df = predictions_df[predictions_df.date == current_date]
-    elif prev_hour_predictions_ready:
-        predictions_df = predictions_df[predictions_df.date == (current_date - timedelta(hours=1))]
-        current_date = current_date - timedelta(hours=1)
-        st.subheader("⚠️ The most recent data is not yet available. Using last hour predictions")
     else:
-        logger.error("Features are not available for the last 2 hours.")
-        raise Exception("Features are not available for the last 2 hours. Is your feature pipeline up and running? 🤔")
+        st.subheader("⚠️ The most recent data is not yet available. Using last available predictions")
+        logger.error("Features are not available for the current hour. Is your feature pipeline up and running? 🤔")
 
 with st.spinner(text="Preparing data to plot"):
     df = pd.merge(
@@ -130,7 +125,7 @@ with st.spinner(text="Preparing data to plot"):
     df["color_scaling"] = df["predicted_demand"]
     max_pred, min_pred = df["color_scaling"].max(), df["color_scaling"].min()
     df["fill_color"] = df["color_scaling"].apply(lambda x: pseudocolor(x, min_pred, max_pred, BLACK, GREEN))
-    df["radius"] = df["predicted_demand"] * 5  # Scaling factor for visualization
+    df["radius"] = df["predicted_demand"] * 5
     progress_bar.progress(5 / N_STEPS)
 
 with st.spinner(text="Generating NYISO Zones Map"):
