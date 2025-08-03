@@ -162,17 +162,6 @@ This project is licensed under the [MIT License](./LICENSE).
 
 ---
 
-## ✨ Quick Start: One-Command Execution
-
-```bash
-poetry run python main.py --stage feature_pipeline && \
-poetry run python main.py --stage training_pipeline && \
-poetry run python main.py --stage inference_pipeline && \
-poetry run python main.py --stage monitoring_pipeline
-```
-
----
-
 ## 🛡️ Troubleshooting
 
 * **Model Not Found**: Ensure it's registered in Hopsworks
