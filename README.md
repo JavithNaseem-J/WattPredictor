@@ -137,24 +137,6 @@ WattPredictor/
 
 ---
 
-## Contribution Guidelines
-
-1. Fork the repository.
-2. Create a new branch: `feature/your-feature-name`
-3. Make your changes and test thoroughly.
-4. Submit a Pull Request with detailed description.
-
-### Reporting Bugs
-
-* Use GitHub Issues with reproduction steps.
-
-### Code Review
-
-* Reviews are required before merging to `main`.
-* Ensure unit tests and linting pass via CI.
-
----
-
 ## License
 
 This project is licensed under the [MIT License](./LICENSE).
