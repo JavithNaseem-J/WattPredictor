@@ -1,14 +1,91 @@
+# Python cache and virtual environments
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv
+
+# DVC and caching
 .dvc/
 .cache/
+
+# Logs and temporary files
 logs/
 *.log
-*.csv
-*.json
+tmp/
+temp/
+
+# Data files (uncomment if data should not be in container)
+# *.csv
+# *.json
+data/raw/elec_data/
+
+# Model files and artifacts (be selective)
 *.joblib
 *.pkl
+*.model
+
+# Jupyter notebooks (for production builds)
 *.ipynb
-.notebooks/
+notebooks/
+
+# Environment and secrets
 .env
+.env.local
+.env.production
+
+# Artifacts (keep prediction artifacts, exclude others)
 artifacts/
+!artifacts/prediction/
+
+# Remote storage
 remote/
+
+# Git and version control
+.git/
+.gitignore
+.gitattributes
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Documentation
+README.md
+LICENSE
+*.md
+docs/
+
+# Testing and development
+tests/
+.pytest_cache/
+.coverage
+.tox/
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml

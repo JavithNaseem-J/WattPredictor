@@ -1,34 +1,45 @@
-FROM python:3.10-slim
+FROM python:3.10-slim AS builder
+ENV PYTHONUNBUFFERED=1
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    POETRY_VERSION=1.8.2
-
-WORKDIR /app
-
+# Install build dependencies and uv
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
-    git \
-    libgdal-dev \
-    && rm -rf /var/lib/apt/lists/*
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir uv
 
-RUN curl -sSL https://install.python-poetry.org | python3 - && \
-    ln -s /root/.local/bin/poetry /usr/local/bin/poetry
+# Set working directory
+WORKDIR /app
 
-COPY pyproject.toml .
-COPY poetry.lock* .
+# Copy dependency files
+COPY pyproject.toml ./
 
-RUN poetry config virtualenvs.create false && \
-    poetry config installer.max-workers 1 && \
-    poetry config installer.parallel false && \
-    poetry config cache-dir /tmp/poetry-cache
+# Install dependencies in a virtual environment
+RUN uv venv /venv && uv pip install --no-cache-dir -e . --no-deps && uv pip install --no-cache-dir .[prod]
 
-COPY src/ ./src
+FROM python:3.10-slim
+ENV PYTHONUNBUFFERED=1
 
-RUN poetry install --no-interaction --no-ansi --no-root || \
-    poetry install --no-interaction --no-ansi --no-root
+COPY --from=builder /venv /venv
+
+# Copy only necessary files
+WORKDIR /app
+COPY src/ src/
+COPY app.py main.py config_file/ ./
+
+# Create non-root user and directories
+RUN useradd -m -u 1000 appuser && \
+    mkdir -p artifacts/prediction logs data/raw && \
+    chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "src/WattPredictor/app.py"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+
+CMD ["streamlit", "run", "app.py"]
