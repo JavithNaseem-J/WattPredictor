@@ -13,6 +13,8 @@ from sklearn.metrics import mean_squared_error
 from WattPredictor.utils.exception import CustomException
 from WattPredictor.utils.logging import logger
 
+
+
 class Trainer:
     def __init__(self, config: TrainerConfig):
         self.config = config
