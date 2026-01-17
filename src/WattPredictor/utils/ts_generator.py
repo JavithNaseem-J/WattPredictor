@@ -101,9 +101,10 @@ def get_pipeline(model_type: str, **hyperparams) -> Pipeline:
     add_feature_average_demand_last_4_weeks = FunctionTransformer(
         average_demand_last_4_weeks, validate=False)
     if model_type == "LightGBM":
-        model = LGBMRegressor(**hyperparams)
+        model = LGBMRegressor(**hyperparams, verbosity=-1)
     elif model_type == "XGBoost":
-        model = XGBRegressor(**hyperparams, enable_categorical=False)
+        # Force CPU to avoid CUDA errors
+        model = XGBRegressor(**hyperparams, enable_categorical=False, device="cpu", tree_method="hist")
     else:
         raise ValueError("model_type must be 'LightGBM' or 'XGBoost'")
     return Pipeline([

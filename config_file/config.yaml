@@ -25,6 +25,7 @@ engineering:
 trainer:
   root_dir: artifacts/trainer
   model_name: model.joblib
+  data_path: artifacts/engineering/preprocessed.csv
 
 evaluation:
   root_dir: artifacts/evaluation

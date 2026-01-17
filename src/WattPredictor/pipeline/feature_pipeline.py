@@ -26,3 +26,7 @@ class FeaturePipeline:
         transformer = Engineering(config=transformation_config)
         transformer.transform()
 
+
+if __name__ == "__main__":
+    pipeline = FeaturePipeline()
+    pipeline.run()

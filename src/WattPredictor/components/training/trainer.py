@@ -1,15 +1,11 @@
-import optuna
+import os
 import joblib
 import pandas as pd
-from hsml.schema import Schema
-from hsml.model_schema import ModelSchema
 from datetime import datetime, timedelta
 from WattPredictor.utils.helpers import create_directories, save_bin
 from WattPredictor.utils.ts_generator import features_and_target, get_pipeline, average_demand_last_4_weeks
-from WattPredictor.utils.feature import feature_store_instance
 from WattPredictor.entity.config_entity import TrainerConfig
-from sklearn.model_selection import KFold, train_test_split, cross_val_score
-from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
 from WattPredictor.utils.exception import CustomException
 from WattPredictor.utils.logging import logger
 
@@ -18,26 +14,36 @@ from WattPredictor.utils.logging import logger
 class Trainer:
     def __init__(self, config: TrainerConfig):
         self.config = config
-        self.feature_store = feature_store_instance()
-        self.models = {
+        self.feature_store = None
+        self.use_hopsworks = os.getenv("USE_HOPSWORKS", "false").lower() == "true"
+        if self.use_hopsworks:
+            try:
+                from WattPredictor.utils.feature import feature_store_instance
+                self.feature_store = feature_store_instance()
+            except Exception as e:
+                logger.warning(f"Hopsworks connection failed: {e}. Using local data.")
+                self.use_hopsworks = False
+        # Parameter grids for GridSearchCV - prefix with 'model__' for Pipeline
+        self.param_grids = {
             "XGBoost": {
-                "search_space": lambda trial: {
-                    "n_estimators": trial.suggest_int("n_estimators", 50, 300),
-                    "max_depth": trial.suggest_int("max_depth", 3, 10),
-                    "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3),
-                }
+                "model__n_estimators": [100, 200],
+                "model__max_depth": [5, 7],
+                "model__learning_rate": [0.05, 0.1],
             },
             "LightGBM": {
-                "search_space": lambda trial: {
-                    "num_leaves": trial.suggest_int("num_leaves", 20, 150),
-                    "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3),
-                    "n_estimators": trial.suggest_int("n_estimators", 50, 300),
-                }
+                "model__num_leaves": [50, 100],
+                "model__learning_rate": [0.05, 0.1],
+                "model__n_estimators": [100, 200],
             }
         }
 
     def load_training_data(self):
-        df, _ = self.feature_store.get_training_data("elec_wx_features_view")
+        if self.use_hopsworks and self.feature_store:
+            df, _ = self.feature_store.get_training_data("elec_wx_features_view")
+        else:
+            # Load from local preprocessed file
+            logger.info("Loading training data from local file")
+            df = pd.read_csv(self.config.data_path)
         
         df = df[['date', 'demand', 'sub_region_code', 'temperature_2m', 
                  'hour', 'day_of_week', 'month', 'is_weekend', 'is_holiday']]
@@ -62,57 +68,64 @@ class Trainer:
         if not non_numeric_cols.empty:
             raise CustomException(f"Non-numeric columns found in train_x: {non_numeric_cols}", None)
 
-        train_x_transformed = train_x.copy()
-        train_x_transformed = average_demand_last_4_weeks(train_x_transformed)
-
         best_overall = {"model_name": None, "score": float("inf"), "params": None}
 
-        for model_name, model_info in self.models.items():
-            logger.info(f"Optimizing hyperparameters for {model_name}")
-            def objective(trial):
-                params = model_info["search_space"](trial)
-                pipeline = get_pipeline(model_type=model_name, **params)
-                x_tr, x_val, y_tr, y_val = train_test_split(train_x, train_y, test_size=0.2, shuffle=False)
-                pipeline.fit(x_tr, y_tr)
-                preds = pipeline.predict(x_val)
-                return mean_squared_error(y_val, preds)
-
-            study = optuna.create_study(direction="minimize")
-            study.optimize(objective, n_trials=self.config.n_trials)
-
-            best_params = study.best_params
-            pipeline = get_pipeline(model_type=model_name, **best_params)
-            score = -cross_val_score(pipeline, train_x, train_y, cv=KFold(n_splits=self.config.cv_folds), 
-                                     scoring="neg_root_mean_squared_error").mean()
-
-            logger.info(f"{model_name} RMSE: {score:.4f}")
-            if score < best_overall["score"]:
+        # Simple grid search for each model (Pipeline includes feature transformation)
+        for model_name, param_grid in self.param_grids.items():
+            logger.info(f"Tuning {model_name}")
+            
+            grid_search = GridSearchCV(
+                estimator=get_pipeline(model_type=model_name),
+                param_grid=param_grid,
+                cv=TimeSeriesSplit(n_splits=self.config.cv_folds),
+                scoring='neg_root_mean_squared_error',
+                n_jobs=-1
+            )
+            
+            grid_search.fit(train_x, train_y)
+            best_score = -grid_search.best_score_
+            
+            logger.info(f"{model_name} RMSE: {best_score:.4f}")
+            
+            if best_score < best_overall["score"]:
                 best_overall.update({
                     "model_name": model_name,
-                    "score": score,
-                    "params": best_params
+                    "score": best_score,
+                    "params": grid_search.best_params_,
+                    "estimator": grid_search.best_estimator_
                 })
 
-        final_pipeline = get_pipeline(model_type=best_overall["model_name"], **best_overall["params"])
-        final_pipeline.fit(train_x, train_y)
+        final_pipeline = best_overall["estimator"]
 
         model_path = self.config.root_dir / self.config.model_name
         create_directories([model_path.parent])
         save_bin(final_pipeline, model_path)
+        logger.info(f"Model saved to {model_path}")
 
-        input_schema = Schema(train_x_transformed.head(10))
-        output_schema = Schema(pd.DataFrame(train_y))
-        model_schema = ModelSchema(input_schema=input_schema, output_schema=output_schema)
+        # Register model to Hopsworks if enabled
+        if self.use_hopsworks and self.feature_store:
+            try:
+                from hsml.schema import Schema
+                from hsml.model_schema import ModelSchema
+                
+                input_schema = Schema(train_x.head(10))
+                output_schema = Schema(pd.DataFrame(train_y))
+                model_schema = ModelSchema(input_schema=input_schema, output_schema=output_schema)
 
-        model_registry = self.feature_store.project.get_model_registry()
-        training_timestamp = datetime.now().isoformat()
-        hops_model = model_registry.python.create_model(
-            name=f"wattpredictor_{best_overall['model_name'].lower()}",
-            metrics={"rmse": best_overall["score"]},
-            description=f"Model trained on data up to {cutoff_date}. Training timestamp: {training_timestamp}",
-            input_example=train_x_transformed.head(10),
-            model_schema=model_schema
-        )
-        hops_model.save(model_path.as_posix())
-        logger.info(f"Best model registered: {best_overall['model_name']} v{hops_model.version} with RMSE {best_overall['score']:.4f}")
+                model_registry = self.feature_store.project.get_model_registry()
+                training_timestamp = datetime.now().isoformat()
+                hops_model = model_registry.python.create_model(
+                    name=f"wattpredictor_{best_overall['model_name'].lower()}",
+                    metrics={"rmse": best_overall["score"]},
+                    description=f"Model trained on data up to {cutoff_date}. Training timestamp: {training_timestamp}",
+                    input_example=train_x.head(10),
+                    model_schema=model_schema
+                )
+                hops_model.save(model_path.as_posix())
+                logger.info(f"Model registered to Hopsworks: {best_overall['model_name']} v{hops_model.version}")
+            except Exception as e:
+                logger.warning(f"Failed to register model to Hopsworks: {e}")
+
+        logger.info(f"Best model: {best_overall['model_name']} with RMSE {best_overall['score']:.4f}")
+        
         return best_overall

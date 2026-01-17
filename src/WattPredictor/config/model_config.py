@@ -26,9 +26,9 @@ class ModelConfigurationManager:
             root_dir=Path(config.root_dir),
             input_seq_len= params.input_seq_len,
             step_size = params.step_size,
-            n_trials=params.n_trials,
             cv_folds=params.cv_folds,
-            model_name = Path(config.model_name)
+            model_name = Path(config.model_name),
+            data_path = Path(config.data_path)
         )
 
         return model_trainer_config

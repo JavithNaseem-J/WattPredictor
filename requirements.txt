@@ -1,0 +1,22 @@
+# Core - pinned for faster wheel downloads
+pandas==2.2.3
+numpy==1.26.4
+scikit-learn==1.5.2
+joblib==1.4.2
+
+# ML - pinned versions with wheels
+xgboost==2.1.3
+lightgbm==4.5.0
+
+# Web
+streamlit==1.40.2
+pydeck==0.9.1
+plotly==5.24.1
+
+# API
+requests==2.32.3
+
+# Utils
+python-dotenv==1.0.1
+pyyaml==6.0.2
+python-box==7.3.0

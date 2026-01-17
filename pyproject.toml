@@ -6,7 +6,7 @@ authors = ["JavithNaseem-J <javithnaseem.j@gmail.com>"]
 packages = [{ include = "WattPredictor", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.11"
+python = ">=3.10,<3.13"
 
 # Core packages
 pandas = "^2.0.3"
@@ -27,7 +27,6 @@ streamlit = "*"
 # ML packages
 xgboost = "^3.0.2"
 lightgbm = "^4.6.0"
-optuna = "^4.4.0"
 
 
 # Hopsworks & Feature Store
@@ -36,7 +35,7 @@ hsfs = "^3.7.9"
 
 # MLOps & data versioning
 evidently = "^0.6.6"
-pydantic = "1.10.13" 
+pydantic = ">=1.10,<3" 
 dvc = "^3.61.0"
 dvc-s3 = "^3.2.2"
 geopandas = "^1.1.1"
@@ -55,7 +54,6 @@ types-pyyaml = "^6.0.12"
 # Misc
 gdown = "^5.2.0"
 boto3 = "^1.38.27"
-ydata-profiling = "^4.6.0"
 uvicorn = "^0.35.0"
 
 [tool.poetry.group.dev.dependencies]
@@ -63,6 +61,7 @@ jupyter = "^1.1.1"
 ipykernel = "^6.29.5"
 pytest = "^8.4.1"
 confluent-kafka = "*"
+ydata-profiling = "^4.6.0"
 
 [build-system]
 requires = ["poetry-core"]

@@ -36,9 +36,9 @@ class TrainerConfig:
     root_dir: Path
     input_seq_len: int
     step_size: int
-    n_trials: int
     cv_folds: int
     model_name: Path
+    data_path: Path
 
 @dataclass
 class EvaluationConfig:

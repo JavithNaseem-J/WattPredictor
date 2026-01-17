@@ -12,7 +12,6 @@ class MonitoringPipeline:
     def run(self):
         config = InferenceConfigurationManager()
 
-
         monitor_config = config.get_data_monitoring_config()
         monitor = Monitoring(config=monitor_config)
         monitor.predictions_and_actuals()
@@ -21,3 +20,7 @@ class MonitoringPipeline:
         drift = Drift(config=drift_config)
         drift.Detect()
 
+
+if __name__ == "__main__":
+    pipeline = MonitoringPipeline()
+    pipeline.run()

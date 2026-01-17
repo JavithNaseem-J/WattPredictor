@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import os
+import joblib
 from datetime import datetime, timedelta
 from WattPredictor.utils.exception import CustomException
 from WattPredictor.utils.feature import feature_store_instance
@@ -12,46 +14,62 @@ class Predictor:
     def __init__(self, config: PredictionConfig):
         self.config = config
         self.feature_store = feature_store_instance()
+        self.model = None
         
-        model_registry = self.feature_store.project.get_model_registry()
-        model_names = ["wattpredictor_xgboost", "wattpredictor_lightgbm"]
-        best_model = None
-        best_rmse = float("inf")
-        best_model_name = None
-        best_model_version = None
-
-        all_models = []
-        for model_name in model_names:
-            models = model_registry.get_models(model_name)
-            if models:
-                all_models.extend([(model, model_name) for model in models])
-
-        if not all_models:
-            raise CustomException("No models found with names 'wattpredictor_xgboost' or 'wattpredictor_lightgbm'", None)
-
-        for model, model_name in all_models:
+        # First try to load local model
+        local_model_path = "artifacts/trainer/model.joblib"
+        if os.path.exists(local_model_path):
             try:
-                rmse = model.metrics.get("rmse", float("inf")) if hasattr(model, 'metrics') else float("inf")
-                if rmse < best_rmse:
-                    best_rmse = rmse
-                    best_model = model
-                    best_model_name = model_name
-                    best_model_version = model.version
-            except AttributeError:
-                logger.warning(f"Model {model_name} v{model.version} has no 'metrics' attribute")
+                self.model = joblib.load(local_model_path)
+                logger.info(f"Loaded local model from {local_model_path}")
+                return
+            except Exception as e:
+                logger.warning(f"Failed to load local model: {str(e)}")
+        
+        # Fall back to Hopsworks model registry
+        try:
+            model_registry = self.feature_store.project.get_model_registry()
+            model_names = ["wattpredictor_xgboost", "wattpredictor_lightgbm"]
+            best_model = None
+            best_rmse = float("inf")
+            best_model_name = None
+            best_model_version = None
 
-        if best_model is None:
-            # Fallback to the latest version
-            best_model, best_model_name = max(all_models, key=lambda x: x[0].version)
-            best_model_version = best_model.version
-            logger.warning(f"No metrics available, using latest model: {best_model_name} v{best_model_version}")
+            all_models = []
+            for model_name in model_names:
+                models = model_registry.get_models(model_name)
+                if models:
+                    all_models.extend([(model, model_name) for model in models])
 
-        self.model = self.feature_store.load_model(
-            model_name=best_model_name,
-            model_version=best_model_version,
-            model_filename='model.joblib'
-        )
-        logger.info(f"Loaded model {best_model_name} v{best_model_version} with RMSE {best_rmse if best_rmse != float('inf') else 'unknown'}")
+            if not all_models:
+                raise CustomException("No models found with names 'wattpredictor_xgboost' or 'wattpredictor_lightgbm'", None)
+
+            for model, model_name in all_models:
+                try:
+                    rmse = model.metrics.get("rmse", float("inf")) if hasattr(model, 'metrics') else float("inf")
+                    if rmse < best_rmse:
+                        best_rmse = rmse
+                        best_model = model
+                        best_model_name = model_name
+                        best_model_version = model.version
+                except AttributeError:
+                    logger.warning(f"Model {model_name} v{model.version} has no 'metrics' attribute")
+
+            if best_model is None:
+                # Fallback to the latest version
+                best_model, best_model_name = max(all_models, key=lambda x: x[0].version)
+                best_model_version = best_model.version
+                logger.warning(f"No metrics available, using latest model: {best_model_name} v{best_model_version}")
+
+            self.model = self.feature_store.load_model(
+                model_name=best_model_name,
+                model_version=best_model_version,
+                model_filename='model.joblib'
+            )
+            logger.info(f"Loaded model {best_model_name} v{best_model_version} with RMSE {best_rmse if best_rmse != float('inf') else 'unknown'}")
+        except Exception as e:
+            logger.error(f"Failed to load model from Hopsworks: {str(e)}")
+            raise CustomException("Could not load model from local path or Hopsworks", e)
 
     def _load_batch_features(self, current_date):
         logger.info(f"Fetching features up to {current_date}")

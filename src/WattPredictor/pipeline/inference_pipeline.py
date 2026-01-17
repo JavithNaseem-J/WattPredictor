@@ -17,3 +17,7 @@ class InferencePipeline:
         predictor.predict(save_to_store=True)
 
 
+if __name__ == "__main__":
+    pipeline = InferencePipeline()
+    pipeline.run()
+

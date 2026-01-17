@@ -1,46 +1,49 @@
 stages:
   feature_pipeline:
-    cmd: python main.py --stage feature_pipeline
+    cmd: python -m WattPredictor.pipeline.feature_pipeline
     deps:
-      - src/WattPredictor/pipeline/feature_pipeline.py
+      - src/WattPredictor/components/features/
+      - src/WattPredictor/config/
       - config_file/config.yaml
       - config_file/params.yaml
       - config_file/schema.yaml
     outs:
-      - data/processed/elec_wx_demand.csv
-      - artifacts/engineering/preprocessed.csv
+      - data/processed/elec_wx_demand.csv:
+          cache: true
+      - artifacts/engineering/preprocessed.csv:
+          cache: true
 
   training_pipeline:
-    cmd: python main.py --stage training_pipeline
+    cmd: python -m WattPredictor.pipeline.training_pipeline
     deps:
-      - src/WattPredictor/pipeline/training_pipeline.py
+      - src/WattPredictor/components/training/
       - artifacts/engineering/preprocessed.csv
       - config_file/config.yaml
       - config_file/params.yaml
-      - config_file/schema.yaml
     outs:
-      - artifacts/trainer/model.joblib
+      - artifacts/trainer/model.joblib:
+          cache: true
 
   inference_pipeline:
-    cmd: python main.py --stage inference_pipeline
+    cmd: python -m WattPredictor.pipeline.inference_pipeline
     deps:
-      - src/WattPredictor/pipeline/inference_pipeline.py
+      - src/WattPredictor/components/inference/
       - artifacts/trainer/model.joblib
       - config_file/config.yaml
-      - config_file/params.yaml
-      - config_file/schema.yaml
     outs:
-      - artifacts/prediction/predictions.csv
+      - artifacts/prediction/predictions.csv:
+          cache: true
 
   monitoring_pipeline:
-    cmd: python main.py --stage monitoring_pipeline
+    cmd: python -m WattPredictor.pipeline.monitoring_pipeline
     deps:
-      - src/WattPredictor/pipeline/monitoring_pipeline.py
+      - src/WattPredictor/components/monitor/
       - artifacts/prediction/predictions.csv
       - config_file/config.yaml
-      - config_file/params.yaml
-      - config_file/schema.yaml
     outs:
-      - artifacts/monitoring/monitoring_df.csv
-      - artifacts/drift/
+      - artifacts/monitoring/monitoring_df.csv:
+          cache: true
+      - artifacts/drift/:
+          cache: true
+
 

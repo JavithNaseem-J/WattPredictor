@@ -47,8 +47,10 @@ class Monitoring:
         if not common_codes:
             logger.warning("No common sub_region_code values between predictions and actuals")
 
-        from_date = datetime.now(tz=pytz.UTC).replace(hour=1,minute=0, second=0, microsecond=0) - timedelta(days=1)
-        to_date = datetime.now(tz=pytz.UTC).replace(hour=1,minute=0, second=0, microsecond=0)
+        # Fix: Compare predictions made yesterday with actuals available today
+        # Predictions for day D are made on day D-1, actuals for day D are available on day D
+        to_date = datetime.now(tz=pytz.UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+        from_date = to_date - timedelta(days=1)
 
         combined_df = pd.merge(
             predictions_df,

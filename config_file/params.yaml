@@ -1,7 +1,6 @@
 training:
   cv_folds: 5
   n_jobs: -1
-  n_trials: 3
   input_seq_len: 672
   step_size: 23
 

@@ -4,6 +4,7 @@ import sys
 import os
 import joblib
 from pathlib import Path
+from hopsworks_common.client.exceptions import RestAPIError
 from WattPredictor.utils.logging import logger
 from WattPredictor.config.feature_config import FeatureStoreConfig
 from WattPredictor.utils.exception import CustomException
@@ -21,13 +22,27 @@ class FeatureStore:
         logger.info(f"Connected to Hopsworks Feature Store: {config.hopsworks_project_name}")
 
     def create_feature_group(self, name, df, primary_key, event_time, description, online_enabled=True, version=2):
+        """Create or retrieve a feature group, handling idempotency for existing groups."""
         try:
-            # Check if feature group exists
             fg = self.feature_store.get_feature_group(name=name, version=version)
-            fg.insert(df)
-            logger.info(f"Feature Group '{name}' v{version} exists. Data inserted.")
+            logger.info(f"Feature Group '{name}' v{version} already exists.")
             return fg
-        except:
+        except RestAPIError as e:
+            # Only handle 404 (Not Found) as expected case
+            if e.response.status_code != 404:
+                logger.error(f"Unexpected API error retrieving '{name}': {e.response.status_code}")
+                raise
+        except (ConnectionError, TimeoutError) as e:
+            logger.error(f"Network error accessing '{name}': {str(e)}")
+            raise
+        
+        # Feature group doesn't exist, create it
+        logger.debug(f"Feature Group '{name}' not found. Creating new one.")
+        return self._create_and_save_feature_group(name, df, primary_key, event_time, description, online_enabled, version)
+
+    def _create_and_save_feature_group(self, name, df, primary_key, event_time, description, online_enabled, version):
+        """Create feature group and save data. Handles race conditions."""
+        try:
             fg = self.feature_store.create_feature_group(
                 name=name,
                 version=version,
@@ -36,28 +51,42 @@ class FeatureStore:
                 description=description,
                 online_enabled=online_enabled
             )
-            fg.save(df)
+            fg.save(df, write_options={"start_offline_materialization": False})
             logger.info(f"Feature Group '{name}' v{version} created successfully.")
             return fg
+        except RestAPIError as e:
+            # Handle race condition: another process created it
+            if "already exist" in str(e):
+                logger.info(f"Race condition: '{name}' created by concurrent process. Retrieving...")
+                return self.feature_store.get_feature_group(name=name, version=version)
+            logger.error(f"Failed to create '{name}': {e}")
+            raise
 
-    def create_feature_view(self, name, feature_group_name, features, version=1):
+    def create_feature_view(self, name, feature_group_name, features, version=1, labels=None):
+        """Create or retrieve a feature view with specified labels."""
         try:
             fv = self.feature_store.get_feature_view(name=name, version=version)
-            if fv is not None:
-                logger.info(f"Feature View '{name}' v{version} already exists.")
-                return fv
-            else:
-                raise Exception("Feature view not found")
-        except Exception:
-            fg = self.feature_store.get_feature_group(name=feature_group_name, version=2)
-            fv = self.feature_store.create_feature_view(
-                name=name,
-                version=version,
-                query=fg.select(features),
-                description=f"Feature View for {name}"
-            )
-            logger.info(f"Feature View '{name}' v{version} created successfully.")
+            logger.info(f"Feature View '{name}' v{version} already exists.")
             return fv
+        except RestAPIError as e:
+            if e.response.status_code != 404:
+                logger.error(f"Unexpected API error retrieving Feature View '{name}': {e.response.status_code}")
+                raise
+        
+        # Feature view doesn't exist, create it
+        logger.debug(f"Feature View '{name}' not found. Creating new one.")
+        fg = self.feature_store.get_feature_group(name=feature_group_name, version=2)
+        labels = labels or ["demand"]  # Simplify default assignment
+        
+        fv = self.feature_store.create_feature_view(
+            name=name,
+            version=version,
+            query=fg.select(features),
+            description=f"Feature View for {name}",
+            labels=labels
+        )
+        logger.info(f"Feature View '{name}' v{version} created successfully.")
+        return fv
 
     def save_training_dataset(self, feature_view_name, version_description, output_format="csv"):
         fv = self.feature_store.get_feature_view(name=feature_view_name, version=1)
@@ -73,9 +102,25 @@ class FeatureStore:
         return td
 
     def get_training_data(self, feature_view_name):
-        fv = self.feature_store.get_feature_view(name=feature_view_name, version=1)
-        X, y = fv.training_data()
-        logger.info(f"Retrieved training data from Feature View '{feature_view_name}'.")
+        """Get training data from feature view with fallback to feature group."""
+        try:
+            fv = self.feature_store.get_feature_view(name=feature_view_name, version=1)
+            X, y = fv.training_data()
+            logger.info(f"Retrieved training data from Feature View '{feature_view_name}'.")
+            return X, y
+        except RestAPIError as e:
+            logger.warning(f"Feature View retrieval failed ({e.response.status_code}). Using fallback...")
+        except Exception as e:
+            logger.warning(f"Could not retrieve training data from feature view: {str(e)}. Using fallback...")
+        
+        # Fallback: get data directly from feature group
+        fg = self.feature_store.get_feature_group(name="elec_wx_features", version=2)
+        df = fg.read()
+        logger.info(f"Retrieved data directly from feature group, shape: {df.shape}")
+        
+        # Separate features and label
+        y = df[["demand"]].copy()
+        X = df.drop(columns=["demand"])
         return X, y
     
 

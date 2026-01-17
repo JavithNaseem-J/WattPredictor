@@ -27,9 +27,9 @@ temp/
 data/raw/elec_data/
 
 # Model files and artifacts (be selective)
-*.joblib
-*.pkl
-*.model
+# Keep trained model and preprocessed data for app
+# *.joblib
+# *.pkl
 
 # Jupyter notebooks (for production builds)
 *.ipynb
@@ -40,9 +40,11 @@ notebooks/
 .env.local
 .env.production
 
-# Artifacts (keep prediction artifacts, exclude others)
-artifacts/
-!artifacts/prediction/
+# Artifacts - exclude raw data, keep model
+data/raw/
+artifacts/evaluation/
+artifacts/validation/
+artifacts/prediction/
 
 # Remote storage
 remote/

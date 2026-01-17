@@ -1,8 +1,12 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 from WattPredictor.entity.config_entity import FeatureStoreConfig
 from WattPredictor.utils.helpers import read_yaml, create_directories
 from WattPredictor.constants.paths import *
+
+# Load environment variables
+load_dotenv()
 
 class FeatureConfigurationManager:
     def __init__(self, 
@@ -19,7 +23,7 @@ class FeatureConfigurationManager:
 
         feature_store_config = FeatureStoreConfig(
             hopsworks_project_name=config.hopsworks_project_name,
-            hopsworks_api_key=os.environ['hopsworks_api_key'],
+            hopsworks_api_key=os.environ['HOPSWORKS_API_KEY'],
         )
 
         return feature_store_config

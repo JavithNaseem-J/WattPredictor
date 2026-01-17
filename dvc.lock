@@ -1,0 +1,108 @@
+schema: '2.0'
+stages:
+  feature_pipeline:
+    cmd: python -m WattPredictor.pipeline.feature_pipeline
+    deps:
+    - path: config_file/config.yaml
+      hash: md5
+      md5: eeb65b7b56b8e80f684e83c53d6bbfaa
+      size: 1533
+    - path: config_file/params.yaml
+      hash: md5
+      md5: 4f6fcf94f348c812eead86b518ead77b
+      size: 306
+    - path: config_file/schema.yaml
+      hash: md5
+      md5: d23980e8b0eb01aa1025bf3b270fcc75
+      size: 273
+    - path: src/WattPredictor/components/features/
+      hash: md5
+      md5: 6c1934644f2745b60faa21ca1d1f3917.dir
+      size: 39035
+      nfiles: 10
+    - path: src/WattPredictor/config/
+      hash: md5
+      md5: 9826b0cd5f923930faca0258183de8f1.dir
+      size: 12807
+      nfiles: 9
+    outs:
+    - path: artifacts/engineering/preprocessed.csv
+      hash: md5
+      md5: 0cbd435dbd497999022be684d9094dca
+      size: 7179582
+    - path: data/processed/elec_wx_demand.csv
+      hash: md5
+      md5: c85da425a629761febf964492d7d8861
+      size: 16482367
+  training_pipeline:
+    cmd: python -m WattPredictor.pipeline.training_pipeline
+    deps:
+    - path: artifacts/engineering/preprocessed.csv
+      hash: md5
+      md5: 0cbd435dbd497999022be684d9094dca
+      size: 7179582
+    - path: config_file/config.yaml
+      hash: md5
+      md5: eeb65b7b56b8e80f684e83c53d6bbfaa
+      size: 1533
+    - path: config_file/params.yaml
+      hash: md5
+      md5: 4f6fcf94f348c812eead86b518ead77b
+      size: 306
+    - path: src/WattPredictor/components/training/
+      hash: md5
+      md5: eca81083d0522dc6f26baed744188b98.dir
+      size: 20919
+      nfiles: 6
+    outs:
+    - path: artifacts/trainer/model.joblib
+      hash: md5
+      md5: d45378f89ca246795ee3fdf663f88fb6
+      size: 944179
+  inference_pipeline:
+    cmd: python -m WattPredictor.pipeline.inference_pipeline
+    deps:
+    - path: artifacts/trainer/model.joblib
+      hash: md5
+      md5: d45378f89ca246795ee3fdf663f88fb6
+      size: 944179
+    - path: config_file/config.yaml
+      hash: md5
+      md5: eeb65b7b56b8e80f684e83c53d6bbfaa
+      size: 1533
+    - path: src/WattPredictor/components/inference/
+      hash: md5
+      md5: a219d0e2bd61f7379f54072dd05041bf.dir
+      size: 11993
+      nfiles: 4
+    outs:
+    - path: artifacts/prediction/predictions.csv
+      hash: md5
+      md5: f2510da8d103689b2b2e513de074e112
+      size: 366
+  monitoring_pipeline:
+    cmd: python -m WattPredictor.pipeline.monitoring_pipeline
+    deps:
+    - path: artifacts/prediction/predictions.csv
+      hash: md5
+      md5: f2510da8d103689b2b2e513de074e112
+      size: 366
+    - path: config_file/config.yaml
+      hash: md5
+      md5: eeb65b7b56b8e80f684e83c53d6bbfaa
+      size: 1533
+    - path: src/WattPredictor/components/monitor/
+      hash: md5
+      md5: 7b34a2ffae78e2a85585bff118288fab.dir
+      size: 13762
+      nfiles: 6
+    outs:
+    - path: artifacts/drift/
+      hash: md5
+      md5: 03d363d0aff7a54d0008cd8fda81ddcf.dir
+      size: 6502966
+      nfiles: 2
+    - path: artifacts/monitoring/monitoring_df.csv
+      hash: md5
+      md5: 006e4b9e14b0cf935d0ed44da2a49704
+      size: 46

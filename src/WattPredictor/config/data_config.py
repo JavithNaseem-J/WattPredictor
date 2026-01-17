@@ -1,9 +1,12 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 from WattPredictor.entity.config_entity import IngestionConfig, ValidationConfig, EngineeringConfig
 from WattPredictor.utils.helpers import read_yaml, create_directories
 from WattPredictor.constants.paths import CONFIG_PATH, PARAMS_PATH, SCHEMA_PATH
 
+# Load environment variables
+load_dotenv()
 
 class DataConfigurationManager:
     def __init__(self, 
@@ -26,9 +29,9 @@ class DataConfigurationManager:
             root_dir=Path(config.root_dir),
             elec_raw_data=Path(config.elec_raw_data),
             wx_raw_data=Path(config.wx_raw_data),
-            elec_api= os.environ['elec_api'],
-            wx_api= os.environ['wx_api'],
-            elec_api_key= os.environ['elec_api_key'],
+            elec_api= os.environ['ELEC_API'],
+            wx_api= os.environ['WX_API'],
+            elec_api_key= os.environ['ELEC_API_KEY'],
             data_file=Path(config.data_file)
         )
 
