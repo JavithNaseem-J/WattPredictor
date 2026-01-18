@@ -21,13 +21,16 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
       - name: Install dependencies
         run: |
-          pip install poetry
-          poetry install --no-interaction
+          uv pip install --system -r requirements.txt
+          uv pip install --system pytest
 
       - name: Run tests
-        run: poetry run pytest tests/ -v || echo "No tests found"
+        run: pytest tests/ -v || echo "No tests found"
 
   build-and-push:
     needs: test
