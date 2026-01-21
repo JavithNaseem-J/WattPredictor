@@ -632,8 +632,4 @@ artifacts/
 
 ## 📝 License
 
-MIT License - see [LICENSE](LICENSE) file
-
-**Last Updated**: January 2026
-**Version**: 1.0.0
-**Maintainer**: Javith Naseem J
+MIT License - see [LICENSE](LICENSE)
