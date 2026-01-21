@@ -634,28 +634,6 @@ artifacts/
 
 MIT License - see [LICENSE](LICENSE) file
 
----
-
-## 🙏 Acknowledgments
-
-- **NYISO** for electricity demand data
-- **Open-Meteo** for weather forecasts
-- **Hopsworks** for feature store platform
-- **Evidently** for drift detection framework
-
----
-
-## 📞 Support
-
-For questions or issues:
-
-1. **Check documentation**: Review this README thoroughly
-2. **Review logs**: `tail -f logs/running_logs.log`
-3. **Debug DVC**: `dvc status` and `dvc dag`
-4. **Validate data**: Check `data/processed/` directory
-
----
-
 **Last Updated**: January 2026
 **Version**: 1.0.0
 **Maintainer**: Javith Naseem J
