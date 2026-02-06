@@ -1,8 +1,6 @@
-from datetime import datetime, timedelta
-from WattPredictor.config.inference_config import InferenceConfigurationManager
+from WattPredictor.config.config_manager import ConfigManager
 from WattPredictor.components.monitor.monitoring import Monitoring
 from WattPredictor.components.monitor.drift import Drift
-from WattPredictor.utils.exception import CustomException
 
 
 class MonitoringPipeline:
@@ -10,13 +8,13 @@ class MonitoringPipeline:
         pass
 
     def run(self):
-        config = InferenceConfigurationManager()
+        config = ConfigManager()
 
-        monitor_config = config.get_data_monitoring_config()
+        monitor_config = config.get_monitoring_config()
         monitor = Monitoring(config=monitor_config)
         monitor.predictions_and_actuals()
 
-        drift_config = config.get_data_drift_config()
+        drift_config = config.get_drift_config()
         drift = Drift(config=drift_config)
         drift.Detect()
 

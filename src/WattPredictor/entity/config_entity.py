@@ -1,13 +1,17 @@
 from pathlib import Path
-from dataclasses import dataclass
+from typing import Dict, Any
+from pydantic import BaseModel, Field
 
-@dataclass(frozen=True)
-class FeatureStoreConfig:
+
+class FeatureStoreConfig(BaseModel):
     hopsworks_project_name: str
     hopsworks_api_key: str
 
-@dataclass(frozen=True)
-class IngestionConfig:
+    class Config:
+        frozen = True
+
+
+class IngestionConfig(BaseModel):
     root_dir: Path
     elec_raw_data: Path
     wx_raw_data: Path
@@ -15,24 +19,29 @@ class IngestionConfig:
     wx_api: str
     elec_api_key: str
     data_file: Path
-    
 
-@dataclass(frozen=True)
-class ValidationConfig:
+    class Config:
+        frozen = True
+
+
+class ValidationConfig(BaseModel):
     root_dir: Path
     data_file: Path
     status_file: Path
-    all_schema: dict
+    all_schema: Dict[str, Any]
 
-@dataclass
-class EngineeringConfig:
+    class Config:
+        frozen = True
+
+
+class EngineeringConfig(BaseModel):
     root_dir: Path
     data_file: Path
     status_file: str
     preprocessed: Path
 
-@dataclass
-class TrainerConfig:
+
+class TrainerConfig(BaseModel):
     root_dir: Path
     input_seq_len: int
     step_size: int
@@ -40,8 +49,8 @@ class TrainerConfig:
     model_name: Path
     data_path: Path
 
-@dataclass
-class EvaluationConfig:
+
+class EvaluationConfig(BaseModel):
     root_dir: Path
     model_path: Path
     input_seq_len: int
@@ -49,8 +58,8 @@ class EvaluationConfig:
     img_path: Path
     metrics_path: Path
 
-@dataclass
-class PredictionConfig:
+
+class PredictionConfig(BaseModel):
     model_name: str
     model_version: int
     feature_view_name: str
@@ -58,14 +67,14 @@ class PredictionConfig:
     n_features: int
     predictions_df: Path
 
-@dataclass
-class MonitoringConfig:
+
+class MonitoringConfig(BaseModel):
     predictions_fg_name: str
     predictions_fg_version: int
     actuals_fg_name: str
     actuals_fg_version: int
     monitoring_df: Path
 
-@dataclass
-class DriftConfig:
+
+class DriftConfig(BaseModel):
     report_dir: Path

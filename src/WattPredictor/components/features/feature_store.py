@@ -6,7 +6,7 @@ import joblib
 from pathlib import Path
 from hopsworks_common.client.exceptions import RestAPIError
 from WattPredictor.utils.logging import logger
-from WattPredictor.config.feature_config import FeatureStoreConfig
+from WattPredictor.entity.config_entity import FeatureStoreConfig
 from WattPredictor.utils.exception import CustomException
 
 

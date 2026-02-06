@@ -75,16 +75,6 @@ def features_and_target(ts_data: pd.DataFrame, input_seq_len: int, step_size: in
         raise CustomException("No valid time-series sequences generated", None)
     return features, targets['target_demand_next_hour']
 
-def ts_train_test_split(df: pd.DataFrame, cutoff_date: datetime, target_column_name: str):
-    df['date'] = pd.to_datetime(df['date'], utc=True)
-    train_data = df[df['date'] < cutoff_date].reset_index(drop=True)
-    test_data = df[df['date'] >= cutoff_date].reset_index(drop=True)
-    X_train = train_data.drop(columns=[target_column_name])
-    y_train = train_data[target_column_name]
-    X_test = test_data.drop(columns=[target_column_name])
-    y_test = test_data[target_column_name]
-    return X_train, y_train, X_test, y_test
-
 def average_demand_last_4_weeks(X: pd.DataFrame) -> pd.DataFrame:
     required_columns = [f'demand_previous_{i*7*24}_hour' for i in range(1, 5)]
     if not all(col in X.columns for col in required_columns):

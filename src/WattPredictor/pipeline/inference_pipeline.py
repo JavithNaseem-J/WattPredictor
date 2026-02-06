@@ -1,9 +1,5 @@
-from datetime import datetime
-from WattPredictor.config.inference_config import InferenceConfigurationManager
-from WattPredictor.entity.config_entity import PredictionConfig
+from WattPredictor.config.config_manager import ConfigManager
 from WattPredictor.components.inference.predictor import Predictor
-from WattPredictor.utils.exception import CustomException
-
 
 
 class InferencePipeline:
@@ -11,8 +7,8 @@ class InferencePipeline:
         pass
 
     def run(self):
-        config = InferenceConfigurationManager()
-        predictor_config = config.get_data_prediction_config()
+        config = ConfigManager()
+        predictor_config = config.get_prediction_config()
         predictor = Predictor(config=predictor_config)
         predictor.predict(save_to_store=True)
 
@@ -20,4 +16,3 @@ class InferencePipeline:
 if __name__ == "__main__":
     pipeline = InferencePipeline()
     pipeline.run()
-
