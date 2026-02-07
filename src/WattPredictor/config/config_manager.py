@@ -1,8 +1,3 @@
-"""
-Unified Configuration Manager for WattPredictor.
-Consolidates all configuration management into a single class.
-"""
-
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -19,11 +14,7 @@ load_dotenv()
 
 
 class ConfigManager:
-    """
-    Unified configuration manager for all pipeline components.
-    Replaces: DataConfigurationManager, ModelConfigurationManager,
-              InferenceConfigurationManager, FeatureConfigurationManager
-    """
+
     
     def __init__(self, 
                  config_filepath=CONFIG_PATH,
@@ -156,11 +147,3 @@ class ConfigManager:
             hopsworks_project_name=config.hopsworks_project_name,
             hopsworks_api_key=os.environ.get('HOPSWORKS_API_KEY', ''),
         )
-
-
-# Legacy aliases for backward compatibility
-# These can be removed once all imports are updated
-DataConfigurationManager = ConfigManager
-ModelConfigurationManager = ConfigManager
-InferenceConfigurationManager = ConfigManager
-FeatureConfigurationManager = ConfigManager

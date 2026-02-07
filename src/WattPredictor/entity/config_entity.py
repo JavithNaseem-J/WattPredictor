@@ -7,9 +7,6 @@ class FeatureStoreConfig(BaseModel):
     hopsworks_project_name: str
     hopsworks_api_key: str
 
-    class Config:
-        frozen = True
-
 
 class IngestionConfig(BaseModel):
     root_dir: Path
@@ -20,8 +17,6 @@ class IngestionConfig(BaseModel):
     elec_api_key: str
     data_file: Path
 
-    class Config:
-        frozen = True
 
 
 class ValidationConfig(BaseModel):
@@ -30,8 +25,7 @@ class ValidationConfig(BaseModel):
     status_file: Path
     all_schema: Dict[str, Any]
 
-    class Config:
-        frozen = True
+
 
 
 class EngineeringConfig(BaseModel):
