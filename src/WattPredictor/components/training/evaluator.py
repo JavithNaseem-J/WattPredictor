@@ -10,6 +10,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolu
 from WattPredictor.utils.helpers import create_directories, save_json
 from WattPredictor.utils.exception import CustomException
 from WattPredictor.utils.logging import logger
+from WattPredictor.utils.business_metrics import BusinessMetrics
 
 class Evaluation:
     def __init__(self, config: EvaluationConfig):
@@ -97,6 +98,34 @@ class Evaluation:
             "r2_score": r2,
         }
 
+        # Calculate business impact
+        logger.info("Calculating business impact metrics")
+        business_calculator = BusinessMetrics(
+            avg_demand_mw=2500,  # NYISO average zone
+            electricity_price_per_mwh=65,
+            reserve_margin_percent=15,
+            peak_capacity_cost_per_mw_year=120000
+        )
+        
+        business_report = business_calculator.generate_report(
+            rmse=rmse,
+            mae=mae,
+            mape=mape,
+            output_path=Path(self.config.metrics_path).parent / "business_impact.json"
+        )
+        
+        # Add business summary to metrics
+        metrics["business_impact"] = {
+            "annual_savings_usd": business_report["detailed_results"]["cost_savings"]["total_annual_savings_usd"],
+            "roi_payback_years": business_report["detailed_results"]["roi"]["roi_payback_years"],
+            "forecast_improvement_percent": business_report["detailed_results"]["forecast_improvement"]["error_reduction_percent"],
+            "capacity_freed_mw": business_report["detailed_results"]["cost_savings"]["reserve_capacity_savings_mw"]
+        }
+        
+        logger.info(f"💰 Annual Savings: ${metrics['business_impact']['annual_savings_usd']:,.0f}")
+        logger.info(f"📊 ROI Payback: {metrics['business_impact']['roi_payback_years']:.1f} years")
+        logger.info(f"📈 Forecast Improvement: {metrics['business_impact']['forecast_improvement_percent']:.1f}%")
+
         create_directories([Path(self.config.metrics_path).parent])
         save_json(self.config.metrics_path, metrics)
         create_directories([Path(self.config.img_path).parent])
@@ -112,5 +141,9 @@ class Evaluation:
 
         self.feature_store.upload_file_safely(self.config.metrics_path, f"eval/metrics_{selected_model_name}_v{selected_model.version}.json")
         self.feature_store.upload_file_safely(self.config.img_path, f"eval/pred_vs_actual_{selected_model_name}_v{selected_model.version}.png")
+        self.feature_store.upload_file_safely(
+            Path(self.config.metrics_path).parent / "business_impact.json",
+            f"eval/business_impact_{selected_model_name}_v{selected_model.version}.json"
+        )
         logger.info(f"Evaluation completed for {selected_model_name} v{selected_model.version} with RMSE {rmse:.4f}")
         return metrics

@@ -1,5 +1,4 @@
 import sys
-import traceback
 
 class CustomException(Exception):
     def __init__(self, message, error_detail: sys = None):

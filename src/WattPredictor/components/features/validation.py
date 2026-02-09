@@ -3,7 +3,6 @@ import json
 import pandas as pd
 from WattPredictor.utils.logging import logger
 from WattPredictor.entity.config_entity import ValidationConfig
-from WattPredictor.config.data_config import DataConfigurationManager
 from WattPredictor.utils.helpers import create_directories
 from WattPredictor.utils.exception import CustomException
 
@@ -56,8 +55,6 @@ class Validation:
         schema = self.config.all_schema
 
         logger.info(f"Starting validation for data with shape: {data.shape}")
-            
-        validation_results = {}
             
         validation_results = {
             'column_presence': self.validate_column_presence(data, schema),

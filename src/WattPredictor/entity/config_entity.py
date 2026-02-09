@@ -1,11 +1,12 @@
 from pathlib import Path
 from typing import Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict
 
 
 class FeatureStoreConfig(BaseModel):
     hopsworks_project_name: str
     hopsworks_api_key: str
+    model_config = ConfigDict(protected_namespaces=())
 
 
 class IngestionConfig(BaseModel):
@@ -16,7 +17,7 @@ class IngestionConfig(BaseModel):
     wx_api: str
     elec_api_key: str
     data_file: Path
-
+    model_config = ConfigDict(protected_namespaces=())
 
 
 class ValidationConfig(BaseModel):
@@ -24,8 +25,7 @@ class ValidationConfig(BaseModel):
     data_file: Path
     status_file: Path
     all_schema: Dict[str, Any]
-
-
+    model_config = ConfigDict(protected_namespaces=())
 
 
 class EngineeringConfig(BaseModel):
@@ -33,6 +33,7 @@ class EngineeringConfig(BaseModel):
     data_file: Path
     status_file: str
     preprocessed: Path
+    model_config = ConfigDict(protected_namespaces=())
 
 
 class TrainerConfig(BaseModel):
@@ -42,6 +43,7 @@ class TrainerConfig(BaseModel):
     cv_folds: int
     model_name: Path
     data_path: Path
+    model_config = ConfigDict(protected_namespaces=())
 
 
 class EvaluationConfig(BaseModel):
@@ -51,6 +53,7 @@ class EvaluationConfig(BaseModel):
     step_size: int
     img_path: Path
     metrics_path: Path
+    model_config = ConfigDict(protected_namespaces=())
 
 
 class PredictionConfig(BaseModel):
@@ -60,6 +63,7 @@ class PredictionConfig(BaseModel):
     feature_view_version: int
     n_features: int
     predictions_df: Path
+    model_config = ConfigDict(protected_namespaces=())
 
 
 class MonitoringConfig(BaseModel):
@@ -68,7 +72,9 @@ class MonitoringConfig(BaseModel):
     actuals_fg_name: str
     actuals_fg_version: int
     monitoring_df: Path
+    model_config = ConfigDict(protected_namespaces=())
 
 
 class DriftConfig(BaseModel):
     report_dir: Path
+    model_config = ConfigDict(protected_namespaces=())

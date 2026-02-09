@@ -9,7 +9,6 @@ from evidently.metric_preset import DataDriftPreset
 from evidently.metrics import (DatasetDriftMetric,ColumnDriftMetric,ColumnSummaryMetric)
 from WattPredictor.utils.feature import feature_store_instance
 from WattPredictor.entity.config_entity import DriftConfig
-from WattPredictor.config.data_config import DataConfigurationManager
 from WattPredictor.utils.helpers import create_directories
 from WattPredictor.utils.exception import CustomException
 from WattPredictor.utils.logging import logger
