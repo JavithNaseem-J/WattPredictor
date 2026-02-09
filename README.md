@@ -182,21 +182,21 @@ sequenceDiagram
 
 ```mermaid
 graph TD
-    Query[User Query:<br/>Predict Next Hour] --> FetchAPI[Fetch Latest 30 Days<br/>EIA + Weather APIs]
+    Query[User Query: Predict Next Hour] --> FetchAPI[Fetch Latest 30 Days EIA + Weather APIs]
     
     FetchAPI --> BuildFeatures[Build Feature Vector]
-    BuildFeatures --> Lags[672-Hour Lag Features<br/>28 Days Historical Demand]
-    BuildFeatures --> Temporal[Temporal Features<br/>Hour, DoW, Month, Holiday]
-    BuildFeatures --> Weather[Weather Features<br/>Temp, Humidity, Wind]
+    BuildFeatures --> Lags[672-Hour Lag Features 28 Days Historical Demand]
+    BuildFeatures --> Temporal[Temporal Features Hour DoW Month Holiday]
+    BuildFeatures --> Weather[Weather Features Temp Humidity Wind]
     
     Lags --> Merge[Merge Features]
     Temporal --> Merge
     Weather --> Merge
     
-    Merge --> LoadModel{Load Best Model<br/>from Registry}
+    Merge --> LoadModel{Load Best Model from Registry}
     
-    LoadModel -->|XGBoost| XGB[XGBoost Model<br/>rmse=85.0]
-    LoadModel -->|LightGBM| LGB[LightGBM Model<br/>rmse=88.2]
+    LoadModel -->|XGBoost| XGB[XGBoost Model rmse=85.0]
+    LoadModel -->|LightGBM| LGB[LightGBM Model rmse=88.2]
     
     XGB --> Predict[Generate Prediction]
     LGB --> Predict
@@ -205,7 +205,7 @@ graph TD
     Validate -->|Pass| CalcCost[Calculate Business Impact]
     Validate -->|Fail| Fallback[Use Baseline Forecast]
     
-    CalcCost --> Response[Return Response:<br/>Demand (MW)<br/>Confidence<br/>Cost Savings<br/>Sources]
+    CalcCost --> Response[Return Response: Demand MW Confidence Cost Savings Sources]
     
     Fallback --> Response
     
