@@ -550,25 +550,6 @@ grid = GridSearchCV(
 )
 ```
 
-### **4. Business Impact Integration**
-
-Automatic ROI calculation during evaluation:
-```python
-from WattPredictor.utils.business_metrics import BusinessMetrics
-
-calculator = BusinessMetrics(
-    avg_demand_mw=2500,
-    electricity_price_per_mwh=65,
-    reserve_margin_percent=15
-)
-
-report = calculator.generate_report(
-    rmse=85.0,
-    mae=55.0,
-    mape=3.5
-)
-# Output: $1.38M savings, 6-month ROI
-```
 
 ---
 
