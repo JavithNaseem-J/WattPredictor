@@ -6,27 +6,27 @@ ENV PYTHONPATH=/app/src
 
 WORKDIR /app
 
-# Install only curl for health checks
+# Install uv for faster dependency resolution
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Install curl for health checks
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for layer caching
+# Copy requirements and install with uv
 COPY requirements.txt ./
-
-# Install Python dependencies with retries and longer timeout
-RUN pip install --no-cache-dir --timeout 120 --retries 5 -r requirements.txt
+RUN uv pip install --system --no-cache -r requirements.txt
 
 # Copy application code
 COPY src/ src/
 COPY app.py ./
 COPY config_file/ config_file/
 
-# Copy artifacts (model and preprocessed data)
+# Copy artifacts
 COPY artifacts/trainer/ artifacts/trainer/
 COPY artifacts/engineering/ artifacts/engineering/
 
-# Create non-root user and required directories
+# Create non-root user
 RUN useradd -m -u 1000 appuser && \
     mkdir -p artifacts/prediction logs data/processed && \
     chown -R appuser:appuser /app

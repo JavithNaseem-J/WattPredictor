@@ -1,0 +1,19 @@
+# Includes production dependencies
+-r requirements.txt
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0
+
+# Code quality
+black==23.12.1
+flake8==7.0.0
+mypy==1.8.0
+isort==5.13.2
+
+# DVC (CLI tool for pipeline management)
+dvc==3.40.1
+
+# Notebooks
+jupyter==1.0.0
+ipykernel==6.29.0

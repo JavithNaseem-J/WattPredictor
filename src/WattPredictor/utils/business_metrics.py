@@ -29,7 +29,7 @@ class BusinessMetrics:
         
         # Energy imbalance costs (buying energy last-minute at premium)
         hours_per_year = 8760
-        imbalance_penalty_multiplier = 1.5  # Real-time energy costs 50% more
+        imbalance_penalty_multiplier = 1.5 
         annual_imbalance_cost = (
             baseline_error_mw * 
             self.electricity_price * 
