@@ -178,48 +178,6 @@ sequenceDiagram
     DVC-->>DVC: Pipeline Complete ✅
 ```
 
-### **Prediction Decision Flow**
-
-```mermaid
-graph TD
-    Query[User Query: Predict Next Hour] --> FetchAPI[Fetch Latest 30 Days EIA + Weather APIs]
-    
-    FetchAPI --> BuildFeatures[Build Feature Vector]
-    BuildFeatures --> Lags[672-Hour Lag Features 28 Days Historical Demand]
-    BuildFeatures --> Temporal[Temporal Features Hour DoW Month Holiday]
-    BuildFeatures --> Weather[Weather Features Temp Humidity Wind]
-    
-    Lags --> Merge[Merge Features]
-    Temporal --> Merge
-    Weather --> Merge
-    
-    Merge --> LoadModel{Load Best Model from Registry}
-    
-    LoadModel -->|XGBoost| XGB[XGBoost Model rmse=85.0]
-    LoadModel -->|LightGBM| LGB[LightGBM Model rmse=88.2]
-    
-    XGB --> Predict[Generate Prediction]
-    LGB --> Predict
-    
-    Predict --> Validate{Sanity Checks}
-    Validate -->|Pass| CalcCost[Calculate Business Impact]
-    Validate -->|Fail| Fallback[Use Baseline Forecast]
-    
-    CalcCost --> Response[Return Response: Demand MW Confidence Cost Savings Sources]
-    
-    Fallback --> Response
-    
-    Response --> User[Display on Dashboard]
-    Response --> LogMetrics[Log to Metrics DB]
-    
-    LogMetrics --> UpdateDrift[Update Drift Monitor]
-    
-    style LoadModel fill:#4CAF50
-    style Predict fill:#FF9800
-    style CalcCost fill:#2196F3
-    style UpdateDrift fill:#F44336
-```
-
 ---
 
 ## 💰 Model Performance & Cost Savings
