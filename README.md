@@ -5,7 +5,6 @@
 [![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-blue)](https://github.com/JavithNaseem-J/WattPredictor/actions)
 [![Docker](https://img.shields.io/badge/Docker-Ready-brightgreen)](https://hub.docker.com/r/javithnaseem/wattpredictor)
 [![Python](https://img.shields.io/badge/Python-3.10-blue)](https://www.python.org/)
-[![MLOps](https://img.shields.io/badge/MLOps-DVC%20%2B%20Hopsworks-orange)](https://dvc.org/)
 
 ---
 
@@ -13,9 +12,9 @@
 
 <table>
 <tr>
-<td align="center"><b>💰 Annual Savings</b><br/><h2>$1.2M+</h2>Per grid zone</td>
+<td align="center"><b>💰 Annual Savings</b><br/><h2>$1.38M</h2>Per grid zone</td>
 <td align="center"><b>📊 Forecast Accuracy</b><br/><h2>96.5%</h2>MAPE: 3.5%</td>
-<td align="center"><b>⚡ Capacity Freed</b><br/><h2>150+ MW</h2>Reduced reserves</td>
+<td align="center"><b>⚡ Capacity Freed</b><br/><h2>150 MW</h2>Reduced reserves</td>
 <td align="center"><b>🚀 ROI</b><br/><h2>6 months</h2>Payback period</td>
 </tr>
 </table>
@@ -24,17 +23,19 @@
 
 ---
 
-## 📋 Problem Statement
+## Project Overview
 
-Energy grid operators face a critical challenge: **balancing supply and demand in real-time** while minimizing costs and maintaining reliability.
+**WattPredictor** is an end-to-end machine learning pipeline for forecasting hourly electricity demand in New York ISO (NYISO) zones using weather and temporal data. It supports real-time inference, model retraining, and production-grade monitoring with drift detection.
 
-**Current challenges:**
-- ❌ Traditional forecasting: 10%+ error rate
-- ❌ Over-provisioning reserves: $300M+ wasted annually (NYISO)
-- ❌ Real-time energy imbalance: 50% premium pricing
-- ❌ Manual processes: Slow to adapt to weather changes
+### Key Workflow Stages
 
-**Our solution**: AI-powered hourly demand forecasting with 96.5%+ accuracy, automated pipelines, and real-time inference.
+1. **Data Ingestion**: Aggregates electricity demand from NYISO API and weather metrics from Open-Meteo
+2. **Data Validation**: Schema checks, missing values, and type consistency
+3. **Feature Engineering**: Temporal and weather-based transformations using Hopsworks Feature Store
+4. **Model Training**: Hyperparameter-tuned ensemble models (XGBoost, LightGBM)
+5. **Model Evaluation**: RMSE, MAE, MAPE, R² metrics with business impact analysis
+6. **Inference**: Real-time and batch predictions via Streamlit app
+7. **Monitoring**: Drift detection via Evidently AI with automated alerts
 
 ---
 
@@ -117,97 +118,8 @@ graph LR
 2. **Validation**: Schema validation, missing value checks, data quality
 3. **Engineering**: Create 672-hour lag features, temporal features, holidays
 4. **Training**: GridSearchCV with TimeSeriesSplit (prevents data leakage)
-5. **Evaluation**: Calculate RMSE, MAE, MAPE, R² on 90-day test set
+5. **Evaluation**: Calculate RMSE, MAE, MAPE, R² + **Business Impact (ROI, cost savings)**
 6. **Deployment**: Save model + artifacts, push to Hopsworks registry
-
----
-
-## 📊 Data Flow
-
-```mermaid
-sequenceDiagram
-    participant API as External APIs
-    participant Ingestion as Data Ingestion
-    participant FS as Feature Store
-    participant Model as ML Model
-    participant App as Streamlit App
-    participant User as End User
-    
-    API->>Ingestion: Fetch electricity + weather
-    Ingestion->>FS: Store raw + processed data
-    FS->>Model: Training data (365 days)
-    Model->>Model: Train with GridSearchCV
-    Model->>FS: Save to registry
-    
-    User->>App: Request prediction
-    App->>API: Fetch latest 30 days
-    App->>App: Build features (672-hour window)
-    App->>Model: Predict next hour
-    Model->>App: Demand forecast (MW)
-    App->>User: Display on map + charts
-```
-
----
-
-## 🚀 Key Features
-
-### 🎯 Production-Ready MLOps
-- ✅ **Automated Pipelines**: DVC for reproducible ML workflows
-- ✅ **Feature Store**: Hopsworks for versioned features
-- ✅ **Model Registry**: Automated deployment of best models
-- ✅ **CI/CD**: GitHub Actions for Docker build & push
-- ✅ **Monitoring**: Evidently AI for drift detection
-
-### 📈 Advanced ML Techniques
-- ✅ **Time Series CV**: Proper TimeSeriesSplit (no data leakage)
-- ✅ **Ensemble Models**: XGBoost + LightGBM comparison
-- ✅ **Hyperparameter Tuning**: Grid Search with 5-fold CV
-- ✅ **Feature Engineering**: 672-hour lag + temporal + holiday features
-
-### 💼 Business Value
-- ✅ **Cost Savings Calculator**: ROI and business impact metrics
-- ✅ **Real-time Dashboard**: Live predictions with map visualization
-- ✅ **Performance Tracking**: RMSE, MAE, MAPE, R² metrics
-- ✅ **Drift Detection**: Automated alerts for model degradation
-
----
-
-## 🛠️ Tech Stack
-
-<table>
-<tr>
-<th>Category</th>
-<th>Technologies</th>
-</tr>
-<tr>
-<td><b>ML Framework</b></td>
-<td><code>XGBoost</code> <code>LightGBM</code> <code>scikit-learn</code></td>
-</tr>
-<tr>
-<td><b>Data Processing</b></td>
-<td><code>Pandas</code> <code>NumPy</code></td>
-</tr>
-<tr>
-<td><b>MLOps</b></td>
-<td><code>DVC</code> <code>Hopsworks</code> <code>Evidently AI</code></td>
-</tr>
-<tr>
-<td><b>Web App</b></td>
-<td><code>Streamlit</code> <code>Plotly</code> <code>PyDeck</code></td>
-</tr>
-<tr>
-<td><b>APIs</b></td>
-<td><code>EIA</code> <code>Open-Meteo</code> <code>Requests</code></td>
-</tr>
-<tr>
-<td><b>DevOps</b></td>
-<td><code>Docker</code> <code>GitHub Actions</code> <code>UV</code></td>
-</tr>
-<tr>
-<td><b>Config</b></td>
-<td><code>Pydantic</code> <code>YAML</code> <code>python-dotenv</code></td>
-</tr>
-</table>
 
 ---
 
@@ -227,8 +139,8 @@ sequenceDiagram
 ```
 📊 Forecast Error Reduction:     10% → 3.5% (65% improvement)
 💰 Reserve Capacity Savings:     150 MW ($18M/year)
-💵 Imbalance Cost Savings:       ~$1.2M/year
-⚡ Total Annual Savings:          ~$1.38M/year
+💵 Per-Hour Savings:             $157/hour
+⚡ Total Annual Savings:          $1.38M/year
 🚀 ROI Payback:                   6 months
 ```
 
@@ -236,46 +148,74 @@ sequenceDiagram
 
 ---
 
+## 🛠️ Technologies Used
+
+| Category | Tools/Technologies |
+|----------|-------------------|
+| **Language** | Python 3.10 |
+| **ML Models** | XGBoost, LightGBM, scikit-learn |
+| **Data Processing** | Pandas, NumPy |
+| **Orchestration** | DVC + `dvc.yaml` pipelines |
+| **Feature Store** | Hopsworks |
+| **Monitoring** | Evidently AI, Business Metrics |
+| **Deployment** | Docker, Kubernetes (ready), GitHub Actions |
+| **App Interface** | Streamlit, Plotly, PyDeck |
+| **CI/CD** | GitHub Actions with Docker Buildx cache |
+| **Config** | Pydantic (validation), YAML |
+
+---
+
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.10+
-- Docker (optional)
-- API Keys: EIA (free), Hopsworks (optional)
 
-### Local Setup
+* Python >= 3.10
+* Docker (optional)
+* API Keys:
+  * EIA (electricity demand) - [Get free key](https://www.eia.gov/opendata/)
+  * Hopsworks (optional for feature store)
+
+### Docker Build & Run
 
 ```bash
-# 1. Clone repository
+# Pull from Docker Hub
+docker pull javithnaseem/wattpredictor:latest
+
+# Or build locally
 git clone https://github.com/JavithNaseem-J/WattPredictor.git
 cd WattPredictor
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Set up environment variables
-cp .env.example .env
-# Edit .env and add your EIA_API_KEY
-
-# 4. Run DVC pipeline (trains model)
-dvc repro
-
-# 5. Launch Streamlit dashboard
-streamlit run app.py
-```
-
-### Docker Deployment
-
-```bash
-# Build image
-docker build -t wattpredictor:latest .
+docker build -t wattpredictor .
 
 # Run container
 docker run -p 8501:8501 \
   -e ELEC_API_KEY=your_eia_key \
-  wattpredictor:latest
+  wattpredictor
 
 # Access at http://localhost:8501
+```
+
+### Local Development
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run DVC pipeline (trains model)
+dvc repro
+
+# Launch Streamlit dashboard
+streamlit run app.py
+```
+
+### Kubernetes Deployment
+
+```bash
+# Update secrets first
+kubectl apply -f k8s/secrets.yaml
+
+# Deploy application
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
 ```
 
 ---
@@ -284,55 +224,81 @@ docker run -p 8501:8501 \
 
 ```
 WattPredictor/
-├── app.py                          # Streamlit real-time dashboard
-├── dvc.yaml                        # ML pipeline orchestration
-├── Dockerfile                      # Production container
-├── requirements.txt                # Core dependencies
-│
-├── .github/workflows/
-│   └── cicd.yaml                   # CI/CD pipeline
-│
-├── config_file/
-│   ├── config.yaml                 # Main configuration
-│   ├── params.yaml                 # Hyperparameters
-│   └── schema.yaml                 # Data validation
-│
-├── src/WattPredictor/
-│   ├── components/
-│   │   ├── features/               # Data pipeline
-│   │   │   ├── ingestion.py
-│   │   │   ├── validation.py
-│   │   │   ├── engineering.py
-│   │   │   └── feature_store.py
-│   │   ├── training/               # Model training
-│   │   │   ├── trainer.py
-│   │   │   └── evaluator.py
-│   │   ├── inference/              # Predictions
-│   │   │   └── predictor.py
-│   │   └── monitor/                # Monitoring
-│   │       ├── monitoring.py
-│   │       └── drift.py
-│   │
-│   ├── pipeline/                   # DVC pipelines
-│   │   ├── feature_pipeline.py
-│   │   ├── training_pipeline.py
-│   │   ├── inference_pipeline.py
-│   │   └── monitoring_pipeline.py
-│   │
-│   ├── utils/
-│   │   ├── api_client.py           # EIA & Weather APIs
-│   │   ├── business_metrics.py     # ROI calculator
-│   │   ├── ts_generator.py         # Time series features
-│   │   └── helpers.py              # Utilities
-│   │
-│   └── config/
-│       └── config_manager.py       # Unified config (Pydantic)
-│
-└── artifacts/                      # Model outputs
-    ├── trainer/model.joblib
-    ├── engineering/preprocessed.csv
-    └── evaluation/metrics.json
+├── config_file/         # YAML config, schema, hyperparams
+├── notebooks/           # EDA, training notebooks
+├── src/WattPredictor/   # Main ML pipeline logic
+│   ├── components/      # ingestion, validation, training, etc.
+│   │   ├── features/    # Data pipeline
+│   │   ├── training/    # Model training + evaluation
+│   │   ├── inference/   # Predictions
+│   │   └── monitor/     # Drift detection
+│   ├── pipeline/        # Orchestrated pipelines
+│   ├── config/          # Unified ConfigManager (Pydantic)
+│   ├── entity/          # Pydantic models for configs
+│   └── utils/           # Helpers, logger, exceptions
+│       ├── api_client.py       # EIA & Weather APIs
+│       ├── business_metrics.py # ROI calculator
+│       ├── ts_generator.py     # Time series features
+│       └── helpers.py          # I/O utilities
+├── app.py               # Streamlit visualization
+├── Dockerfile           # Container config (UV)
+├── dvc.yaml             # ML pipeline orchestration
+├── k8s/                 # Kubernetes configs (ready)
+├── .github/workflows/   # CI/CD via GitHub Actions
+└── artifacts/           # Model outputs
 ```
+
+---
+
+## 📈 Machine Learning Pipeline Details
+
+### Feature Engineering
+
+* **Lag features**: 672-hour (28-day) demand history
+* **Temporal features**: Hour, day of week, month, is_weekend, is_holiday
+* **Weather features**: Temperature, humidity, wind speed
+* **Aggregations**: 4-week rolling average demand
+* **Feature group**: Stored in Hopsworks
+* **View**: `elec_wx_features_view`
+
+### Model Training
+
+* **Algorithms**: XGBoost, LightGBM ensemble
+* **Cross-validation**: TimeSeriesSplit (5 folds) - prevents data leakage
+* **Hyperparameter tuning**: GridSearchCV
+* **Model selection**: Choose model with lowest RMSE
+* **Registry**: Saved to Hopsworks Model Registry
+
+### Business Impact Calculation
+
+* **Automatic**: Run during model evaluation
+* **Metrics tracked**: 
+  - Annual cost savings (reserve capacity + imbalance)
+  - ROI payback period
+  - Per-hour savings
+  - Forecast improvement percentage
+  - Capacity freed (MW)
+* **Output**: JSON reports in `artifacts/evaluation/`
+
+---
+
+## 🔍 Monitoring and Observability
+
+### Drift Detection
+
+* Uses **Evidently AI** to compare recent predictions with historical stats
+* Tracks:
+  - Feature distribution drift
+  - Prediction distribution drift
+  - Performance degradation
+* **Output**: HTML reports in `artifacts/drift/`
+* **Dashboard**: Monitored in Streamlit app
+
+### Performance Tracking
+
+* **Real-time metrics**: RMSE, MAE, MAPE vs. actuals
+* **Business metrics**: Cost savings, ROI tracking
+* **Model versioning**: Tracked in Hopsworks registry
 
 ---
 
@@ -345,7 +311,7 @@ graph LR
     C -->|Yes| D[Build Docker Image]
     C -->|No| E[Notify Developer]
     D --> F[Push to Docker Hub]
-    F --> G[Deploy to Production]
+    F --> G[Ready for Deploy]
     
     style A fill:#e3f2fd
     style C fill:#fff9c4
@@ -356,73 +322,25 @@ graph LR
 **Automated workflow**:
 1. Code push triggers CI/CD
 2. Run tests (pytest)
-3. Build Docker image with UV (fast)
+3. Build Docker image with UV (fast dependency resolution)
 4. Push to Docker Hub (`javithnaseem/wattpredictor:latest`)
 5. Optional: Auto-deploy to Kubernetes/Cloud Run
 
 ---
 
-## 📈 How It Works
+## 🧪 Testing
 
-### 1. **Data Collection** (Past 365 days)
-- Fetch hourly electricity demand from **EIA API** (NYISO zones)
-- Fetch weather data from **Open-Meteo** (temperature, humidity, wind)
-- Validate schema, handle missing values
+```bash
+# Run all tests
+pytest tests/ -v
 
-### 2. **Feature Engineering**
-- **Lag features**: 672-hour (28-day) demand history
-- **Temporal features**: Hour, day of week, month, weekend, holidays
-- **Weather features**: Temperature, humidity, weather codes
-- **Average demand**: Last 4 weeks rolling average
+# With coverage
+pytest tests/ --cov=src/WattPredictor
 
-### 3. **Model Training**
-- **Algorithms**: XGBoost, LightGBM ensemble
-- **Cross-validation**: TimeSeriesSplit (5 folds)
-- **Hyperparameter tuning**: GridSearchCV
-- **Model selection**: Choose model with lowest RMSE
-
-### 4. **Real-time Inference**
-- Fetch latest 30 days of data
-- Build 672-hour feature window
-- Predict next-hour demand for all 11 zones
-- Display on interactive map + charts
-
-### 5. **Monitoring**
-- Track RMSE, MAE, MAPE vs. actuals
-- Detect data drift with Evidently AI
-- Calculate business impact (cost savings, ROI)
-
----
-
-## 🎓 Business Value Explained
-
-### Why Forecast Accuracy Matters
-
-**Grid operators must balance 3 constraints**:
-1. **Supply = Demand** (real-time, ±0.1%)
-2. **Cost Minimization** (fuel, reserves, imbalance)
-3. **Reliability** (avoid blackouts)
-
-**How ML forecasting helps**:
-
-| Traditional (10% error) | WattPredictor (3.5% error) |
-|------------------------|---------------------------|
-| Over-provision 15% reserves | Reduce to 5% reserves |
-| Buy imbalance at 50% premium | Minimal real-time purchases |
-| Manual adjustments | Automated, weather-aware |
-| $3M+ annual waste | <$1M waste = **$2M+ saved** |
-
-### ROI Calculation
-
-```python
-# For a 2,500 MW grid zone:
-Baseline Error:         250 MW (10%)
-ML Error:              87.5 MW (3.5%)
-Reserve Savings:        150 MW × $120k/MW/year = $18M
-Imbalance Savings:      ~$1.2M/year
-Total Savings:          ~$19.2M/year
-ML Infrastructure Cost: $200k
-ROI Payback:            ~6 months
+# Code quality checks
+black src/
+flake8 src/
+mypy src/
 ```
 
 ---
@@ -454,25 +372,38 @@ training:
 
 monitoring:
   drift_threshold: 0.05
-  alert_email: admin@example.com
 ```
 
 ---
 
-## 🧪 Testing & Quality
+## 🤝 Contribution Guidelines
 
-```bash
-# Run tests
-pytest tests/ -v
+1. Fork the repository
+2. Create a new branch: `feature/your-feature-name`
+3. Make your changes and test thoroughly
+4. Submit a Pull Request with detailed description
 
-# Code quality
-black src/
-flake8 src/
-mypy src/
+### Reporting Bugs
 
-# DVC pipeline validation
-dvc repro --dry
-```
+* Use GitHub Issues with reproduction steps
+* Include environment details (Python version, OS, etc.)
+
+### Code Review
+
+* Reviews are required before merging to `main`
+* Ensure unit tests and linting pass via CI
+
+---
+
+## 🐛 Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| **Model Not Found** | Ensure it's registered in Hopsworks Model Registry |
+| **Drift Output Empty** | Run inference pipeline before monitoring |
+| **Feature Store Error** | Check `.env` for valid API keys |
+| **No Predictions Shown** | Ensure data ingestion and feature pipeline are up-to-date |
+| **Docker Build Fails** | Check if `artifacts/` directory exists with dummy files |
 
 ---
 
@@ -480,27 +411,16 @@ dvc repro --dry
 
 - [ ] Multi-step forecasting (24h, 48h ahead)
 - [ ] Weather forecast integration (not just nowcast)
-- [ ] Ensemble with prophet, LSTM, Transformer models
+- [ ] Ensemble with LSTM, Transformer models
 - [ ] Real-time alerts (Slack, email)
 - [ ] A/B testing framework
 - [ ] Cloud deployment (AWS SageMaker, Google Cloud Run)
 
 ---
 
-## 🤝 Contributing
-
-Contributions welcome! Please:
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push (`git push origin feature/amazing-feature`)
-5. Open Pull Request
-
----
-
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the [MIT License](./LICENSE).
 
 ---
 
@@ -508,7 +428,7 @@ This project is licensed under the MIT License.
 
 **Javith Naseem J**
 
-🔗 [GitHub](https://github.com/JavithNaseem-J/WattPredictor) | 💼 [LinkedIn](#) | 📧 [Email](#)
+🔗 [GitHub](https://github.com/JavithNaseem-J/WattPredictor) | 💼 LinkedIn | 📧 Email
 
 *Full-stack ML Engineer specializing in production MLOps, real-time inference, and business-driven AI solutions.*
 
