@@ -1,46 +1,54 @@
 FROM python:3.10-slim
 
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONPATH=/app/src
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
 WORKDIR /app
 
-# Install system dependencies and build tools
+# Install system dependencies and uv
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
-    gcc \
-    g++ \
+    && curl -LsSf https://astral.sh/uv/install.sh | sh \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install with pip
-COPY requirements.txt ./
-RUN pip install --no-cache-dir --timeout 120 --retries 5 -r requirements.txt
+# Add uv to PATH
+ENV PATH="/root/.local/bin:$PATH"
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install dependencies with uv (much faster than pip)
+RUN uv pip install --system --no-cache -r requirements.txt
 
 # Copy application code
 COPY src/ src/
-COPY app.py ./
+COPY app.py .
 COPY config_file/ config_file/
 
 # Copy artifacts
 COPY artifacts/trainer/ artifacts/trainer/
 COPY artifacts/engineering/ artifacts/engineering/
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && \
-    mkdir -p artifacts/prediction logs data/processed && \
+# Create non-root user for security
+RUN useradd --create-home --shell /bin/bash appuser && \
     chown -R appuser:appuser /app
-
 USER appuser
+
+# Create necessary directories
+RUN mkdir -p artifacts/prediction logs data/processed
 
 # Environment variables
 ENV ELEC_API=https://api.eia.gov/v2/electricity/rto/region-sub-ba-data/data/
 ENV WX_API=https://api.open-meteo.com/v1/forecast
 
+# Expose Streamlit port
 EXPOSE 8501
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-8501}/_stcore/health || exit 1
 
-CMD ["python", "-m", "streamlit", "run", "app.py", "--server.address=0.0.0.0"]
+# Run Streamlit dashboard
+CMD ["sh", "-c", "streamlit run app.py --server.port=${PORT:-8501} --server.address=0.0.0.0 --server.headless=true"]
