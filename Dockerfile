@@ -6,11 +6,15 @@ ENV PYTHONPATH=/app/src
 
 WORKDIR /app
 
-# Install curl for health checks
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+# Install system dependencies and build tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    build-essential \
+    gcc \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install with pip (reliable)
+# Copy requirements and install with pip
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --timeout 120 --retries 5 -r requirements.txt
 
