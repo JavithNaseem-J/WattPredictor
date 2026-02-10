@@ -24,8 +24,10 @@ class Drift:
     def _load_data(self, start_date, end_date):
         try:
             df, _ = self.feature_store.get_training_data('elec_wx_features_view')
-            df['date'] = pd.to_datetime(df['date'], utc=True)
-            df = df[(df['date'] >= start_date) & (df['date'] <= end_date)]
+            df['date'] = pd.to_datetime(df['date'], utc=True).dt.tz_localize(None)
+            start_dt = pd.to_datetime(start_date)
+            end_dt = pd.to_datetime(end_date)
+            df = df[(df['date'] >= start_dt) & (df['date'] <= end_dt)]
             df = df.drop(columns=["date_str"], errors="ignore")
             return df
         except Exception as e:

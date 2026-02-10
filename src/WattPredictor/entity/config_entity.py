@@ -31,9 +31,10 @@ class ValidationConfig(BaseModel):
 class EngineeringConfig(BaseModel):
     root_dir: Path
     data_file: Path
-    status_file: str
+    status_file: Path
     preprocessed: Path
     model_config = ConfigDict(protected_namespaces=())
+
 
 
 class TrainerConfig(BaseModel):
