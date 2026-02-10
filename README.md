@@ -4,7 +4,7 @@
 
 > **Production-grade ML system that reduces grid operational costs by $1.38M annually through 96.5% accurate hourly demand forecasting** using ensemble models and 672-hour time series features.
 
-[Live Demo]((https://wattpredictor.streamlit.app/))
+[Live Demo](https://wattpredictor.streamlit.app/)
 
 ---
 
