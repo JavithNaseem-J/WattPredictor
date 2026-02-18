@@ -1,21 +1,28 @@
 # WattPredictor
 
-**Production-grade ML system for hourly electricity demand forecasting across 11 NYISO grid zones.**
+## Problem Statement
 
-Achieves **2.02% MAPE** (97.98% accuracy) on a 90-day holdout set with 17,347 test samples, reducing forecast error by **80%** compared to the industry persistence baseline. All numbers below are reproduced directly from `artifacts/evaluation/metrics.json` -- run `dvc repro` to regenerate them yourself.
+Electricity grid operators must balance supply and demand **every single hour**. They procure power through two markets:
 
-[Live Dashboard](https://wattpredictor.streamlit.app/) | [Docker Hub](https://hub.docker.com/r/javithnaseem/wattpredictor)
+- **Day-ahead market** ($65/MWh at NYISO) -- requires demand forecasts 24 hours in advance
+- **Real-time market** (1.5x premium, ~$97.5/MWh) -- used when day-ahead forecasts are wrong
+
+When forecasts are inaccurate, two costly things happen:
+
+1. **Over-provisioning**: Operators maintain excess reserve capacity as a safety buffer against forecast errors. At NYISO, the standard reserve margin is 15%, but with 10% forecast error, the effective buffer climbs to 25%. That unused capacity costs $120K/MW/year.
+2. **Imbalance penalties**: Every MW of forecast error means buying (or selling) power on the expensive real-time market -- 8,760 hours per year, at a 50% markup.
+
+The industry standard approach -- **persistence forecasting** (yesterday's demand = today's forecast) -- has roughly **10% MAPE**. Across NYISO's 11 grid zones averaging 2,500 MW each, that 10% error translates to **$258M/year in avoidable costs** per zone from over-provisioning and imbalance penalties.
+
+**WattPredictor reduces forecast error from 10% to 2.02%**, cutting those costs by 80%.
 
 ---
 
-## Why This Project Exists
+**Production-grade ML system for hourly electricity demand forecasting across 11 NYISO grid zones.**
 
-Energy grid operators buy electricity on two markets:
+Achieves **2.02% MAPE** (97.98% accuracy) on a 90-day holdout set with 17,347 test samples. All numbers below are reproduced directly from `artifacts/evaluation/metrics.json` -- run `dvc repro` to regenerate them yourself.
 
-1. **Day-ahead market**: Cheap ($65/MWh average at NYISO). Requires demand forecasts 24h in advance.
-2. **Real-time market**: Expensive (1.5x premium). Used when forecasts are wrong.
-
-Bad forecasts force operators to either **over-provision reserves** (wasting capacity) or **buy expensive real-time power** (blowing budgets). The industry standard persistence model (yesterday's demand = today's forecast) has ~10% error. WattPredictor cuts that to 2%.
+[Live Dashboard](https://wattpredictor.streamlit.app/) | [Docker Hub](https://hub.docker.com/r/javithnaseem/wattpredictor)
 
 ---
 
@@ -117,7 +124,7 @@ graph TB
     subgraph "DVC Pipeline (3 Stages)"
         S1[prepare_data<br/>Ingest + Validate + Engineer<br/>672h sliding windows]
         S2[train_model<br/>GridSearchCV + Evaluate<br/>+ Evidently Drift]
-        S3[predict<br/>Batch Inference]
+        S3[predict<br/>Offline Validation]
     end
 
     subgraph "Artifacts (All Versioned)"
@@ -127,8 +134,8 @@ graph TB
         DR[(drift_report<br/>HTML + JSON)]
     end
 
-    subgraph "Serving"
-        ST[Streamlit Dashboard<br/>11-Zone Map + Charts]
+    subgraph "Serving (Real-Time)"
+        ST[Streamlit Dashboard<br/>Live API → Features → Predict<br/>11-Zone Map + Charts]
         DK[Docker Container<br/>K8s-Ready]
     end
 
@@ -140,6 +147,9 @@ graph TB
     S2 --> E
     S2 --> DR
     M --> S3
+    M --> ST
+    EIA -.->|Live demand| ST
+    WX -.->|Live weather| ST
     S3 --> ST
     ST --> DK
 
@@ -149,6 +159,15 @@ graph TB
     style ST fill:#9C27B0
     style DR fill:#F44336
 ```
+
+### Two Inference Modes
+
+| Mode | Entry Point | Data Source | Use Case |
+|------|-------------|-------------|----------|
+| **Real-time** | `app.py` (Streamlit) | Live EIA + Open-Meteo API calls | Production dashboard -- predicts all 11 zones on-the-fly using 672h of recent live data |
+| **Offline** | `predictor.py` (DVC `predict` stage) | `preprocessed.csv` from pipeline | Reproducible validation -- generates `predictions.csv` for metrics tracking |
+
+The Streamlit dashboard (`app.py`) fetches live electricity demand via `EIAClient` and current weather via `WeatherClient`, builds 672h lag features per zone in real time, and runs inference through the same `model.joblib` produced by the DVC training pipeline.
 
 ### Decision Log
 
@@ -164,7 +183,8 @@ graph TB
 - This is not ensemble -- it is model selection. The single best model is saved
 
 **Why DVC instead of Airflow/Prefect?**
-- This is a batch prediction system, not a streaming pipeline. DVC tracks data + model artifacts with Git, making the entire pipeline reproducible with one command (`dvc repro`)
+- DVC handles the offline training pipeline (data ingestion, model training, evaluation), not the serving layer. Real-time prediction is handled by `app.py`, which fetches live data from EIA + Open-Meteo APIs and runs inference on-the-fly
+- DVC tracks data + model artifacts with Git, making the entire training pipeline reproducible with one command (`dvc repro`)
 - 3 stages with explicit deps/outs means only changed stages re-run
 - No infrastructure needed -- runs on any machine with Python
 
@@ -213,7 +233,7 @@ dvc repro
 # 2. train_model: Trained XGBoost & LightGBM with GridSearchCV,
 #    evaluated on 90-day holdout, ran Evidently drift detection,
 #    computed business impact metrics
-# 3. predict: Generated batch predictions using the best model
+# 3. predict: Generated offline predictions for validation
 
 # Check results
 cat artifacts/evaluation/metrics.json
@@ -256,7 +276,7 @@ src/WattPredictor/
       trainer.py            # GridSearchCV over XGBoost + LightGBM
       evaluator.py          # RMSE/MAE/MAPE/R2 + BusinessMetrics
     inference/
-      predictor.py          # Batch prediction generation
+      predictor.py          # Offline prediction (DVC stage)
     monitor/
       drift.py              # Evidently AI drift detection
       monitoring.py         # Monitoring utilities
@@ -319,7 +339,7 @@ prepare_data ──> train_model ──> predict
 |-------|--------|-------------|-------------|
 | `prepare_data` | `feature_pipeline.py` | Fetches 365 days of electricity demand (EIA) + weather (Open-Meteo), validates schema, engineers 672h sliding window features | `preprocessed.csv`, `elec_wx_demand.csv` |
 | `train_model` | `training_pipeline.py` | GridSearchCV over XGBoost + LightGBM with TimeSeriesSplit(3), evaluates on 90-day holdout, computes business impact, runs Evidently drift detection | `model.joblib`, `metrics.json`, `business_impact.json`, `drift/` |
-| `predict` | `inference_pipeline.py` | Loads best model, generates batch predictions | `predictions.csv` |
+| `predict` | `inference_pipeline.py` | Loads best model, generates offline predictions for pipeline validation | `predictions.csv` |
 
 ```bash
 dvc dag       # Visualize pipeline graph
@@ -431,7 +451,7 @@ pytest tests/test_integration.py    # End-to-end integration
 
 3. **Single-region focus**: Currently trained on NYISO (New York) data only. Adapting to other ISOs (ERCOT, CAISO, EWEC/ADWEC) requires changing the EIA API parameters and potentially retuning the lag window for different climate patterns.
 
-4. **No real-time streaming**: This is a batch prediction system. Predictions are generated per pipeline run, not continuously. For real-time use, you would need to wrap the model in a REST API with a scheduler.
+4. **No streaming ingestion**: The training pipeline fetches historical data in bulk via DVC. Live data ingestion in `app.py` uses request-time API calls rather than a continuous streaming pipeline (e.g., Kafka). For very high-frequency use cases (<1 min intervals), a streaming architecture would be needed.
 
 5. **Business impact assumptions**: The cost savings calculation uses industry-standard assumptions (15% reserve margin, $65/MWh, 1.5x imbalance penalty). Actual savings depend on the specific utility's cost structure, regulatory environment, and how forecasts are operationalized.
 
