@@ -18,14 +18,12 @@ NYC_LON = -74.0060
 
 
 class EIAClient:
-    """Client for EIA (Energy Information Administration) Electricity API."""
     
     def __init__(self, api_url: Optional[str] = None, api_key: Optional[str] = None):
         self.api_url = api_url or os.getenv("ELEC_API")
         self.api_key = api_key or os.getenv("ELEC_API_KEY")
     
     def build_params(self, year: int, month: int, day: int) -> Dict[str, Any]:
-        """Build API request parameters for a specific date."""
         return {
             "frequency": "hourly",
             "data[0]": "value",
@@ -76,15 +74,6 @@ class EIAClient:
     
     @staticmethod
     def process_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Process raw EIA data into standard format.
-        
-        Args:
-            df: Raw DataFrame from API
-            
-        Returns:
-            Processed DataFrame with standard columns
-        """
         if df.empty:
             return df
         
@@ -101,7 +90,6 @@ class EIAClient:
 
 
 class WeatherClient:
-    """Client for Open-Meteo Weather API."""
     
     # API endpoints
     FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
@@ -112,12 +100,6 @@ class WeatherClient:
         self.lon = lon
     
     def fetch_current(self, timeout: int = 10) -> Dict[str, Any]:
-        """
-        Fetch current weather conditions.
-        
-        Returns:
-            Dictionary with current weather data
-        """
         params = {
             "latitude": self.lat,
             "longitude": self.lon,
@@ -147,7 +129,6 @@ class WeatherClient:
             }
     
     def build_archive_params(self, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
-        """Build parameters for historical weather API."""
         return {
             "latitude": self.lat,
             "longitude": self.lon,
@@ -161,10 +142,8 @@ class WeatherClient:
 
 # Convenience functions for simple usage
 def get_eia_client() -> EIAClient:
-    """Get a configured EIA client instance."""
     return EIAClient()
 
 
 def get_weather_client() -> WeatherClient:
-    """Get a configured Weather client instance."""
     return WeatherClient()

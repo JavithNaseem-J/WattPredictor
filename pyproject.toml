@@ -3,10 +3,9 @@ name = "wattpredictor"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "evidently==0.4.31",
-    "hopsworks==3.7.0",
     "joblib==1.4.2",
     "lightgbm==4.5.0",
     "matplotlib==3.9.3",
@@ -22,7 +21,7 @@ dependencies = [
     "pyyaml==6.0.2",
     "requests==2.32.3",
     "requests-cache==1.2.1",
-    "retry-requests>=2.0.0",
+    "retry-requests==2.0.0",
     "scikit-learn==1.5.2",
     "streamlit==1.40.2",
     "tqdm==4.67.1",

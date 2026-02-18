@@ -27,7 +27,6 @@ class Trainer:
         }
 
     def load_training_data(self):
-        """Load training data from local preprocessed file."""
         logger.info("Loading training data from local file")
         df = pd.read_csv(self.config.data_path)
         

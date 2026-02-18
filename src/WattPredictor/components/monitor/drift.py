@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset
 from evidently.metrics import (DatasetDriftMetric,ColumnDriftMetric,ColumnSummaryMetric)
-from WattPredictor.utils.feature import feature_store_instance
 from WattPredictor.entity.config_entity import DriftConfig
 from WattPredictor.utils.helpers import create_directories
 from WattPredictor.utils.exception import CustomException
@@ -16,14 +15,15 @@ from WattPredictor.utils.logging import logger
 
 class Drift:
     def __init__(self,config: DriftConfig):
-        
         self.config = config
-        self.feature_store = feature_store_instance()
-
 
     def _load_data(self, start_date, end_date):
         try:
-            df, _ = self.feature_store.get_training_data('elec_wx_features_view')
+            # Load from preprocessed data
+            preprocessed_path = "artifacts/engineering/preprocessed.csv"
+            if not os.path.exists(preprocessed_path):
+                raise CustomException(f"Preprocessed data not found: {preprocessed_path}", sys)
+            df = pd.read_csv(preprocessed_path)
             df['date'] = pd.to_datetime(df['date'], utc=True).dt.tz_localize(None)
             start_dt = pd.to_datetime(start_date)
             end_dt = pd.to_datetime(end_date)
@@ -31,7 +31,7 @@ class Drift:
             df = df.drop(columns=["date_str"], errors="ignore")
             return df
         except Exception as e:
-            raise CustomException(f"Error loading data from Hopsworks: {e}", sys)
+            raise CustomException(f"Error loading data: {e}", sys)
 
     def Detect(self):
         try:

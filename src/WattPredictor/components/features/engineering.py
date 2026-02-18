@@ -14,7 +14,6 @@ class Engineering:
         self.config = config
 
     def basic_preprocessing(self) -> pd.DataFrame:
-        """Load and preprocess raw data."""
         df = pd.read_csv(self.config.data_file)
         le = LabelEncoder()
         df['sub_region_code'] = le.fit_transform(df['subba'])
@@ -23,7 +22,6 @@ class Engineering:
         return df
 
     def feature_engineering(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Create time-based features for ML model."""
         df['date'] = pd.to_datetime(df['date'], utc=True)
         df['hour'] = df['date'].dt.hour.astype('int64')
         df['day_of_week'] = df['date'].dt.dayofweek.astype('int64')
@@ -40,7 +38,6 @@ class Engineering:
         return df
 
     def transform(self):
-        """Run the full transformation pipeline."""
         # DVC handles dependency checking - no need to manually check validation status
         df = self.feature_engineering(self.basic_preprocessing())
         df.sort_values("date", inplace=True)

@@ -4,7 +4,6 @@ from typing import Dict, Any
 
 
 class BusinessMetrics:
-    """Calculate business value and ROI from forecast improvements."""
     
     def __init__(
         self,
@@ -19,7 +18,6 @@ class BusinessMetrics:
         self.capacity_cost = peak_capacity_cost_per_mw_year
     
     def calculate_baseline_costs(self) -> Dict[str, float]:
-        """Calculate current operational costs without ML forecasting."""
         # Conservative estimate: 10% forecasting error (industry baseline)
         baseline_error_mw = self.avg_demand_mw * 0.10
         
@@ -53,7 +51,6 @@ class BusinessMetrics:
         mae: float,
         mape: float
     ) -> Dict[str, Any]:
-        """Calculate cost savings with ML-based forecasting."""
         baseline = self.calculate_baseline_costs()
         
         # ML model reduces error from 10% (baseline) to MAPE%
@@ -127,7 +124,6 @@ class BusinessMetrics:
         mape: float,
         output_path: Path = None
     ) -> Dict[str, Any]:
-        """Generate comprehensive business impact report."""
         results = self.calculate_ml_improvements(rmse, mae, mape)
         
         # Format for human readability
@@ -151,7 +147,6 @@ class BusinessMetrics:
 
 
 def demo_calculation():
-    """Demo calculation with example metrics."""
     calculator = BusinessMetrics(
         avg_demand_mw=2500,  # NYISO zone average
         electricity_price_per_mwh=65,
@@ -170,10 +165,10 @@ def demo_calculation():
     print("=" * 60)
     print("WATTPREDICTOR - BUSINESS IMPACT ANALYSIS")
     print("=" * 60)
-    print(f"💰 Annual Cost Savings: {report['executive_summary']['annual_cost_savings_usd']}")
-    print(f"📊 ROI Payback Period: {report['executive_summary']['roi_payback_period']}")
-    print(f"📈 Forecast Improvement: {report['executive_summary']['forecast_accuracy_improvement']}")
-    print(f"⚡ Grid Capacity Freed: {report['executive_summary']['grid_capacity_freed_mw']}")
+    print(f"Annual Cost Savings: {report['executive_summary']['annual_cost_savings_usd']}")
+    print(f"ROI Payback Period: {report['executive_summary']['roi_payback_period']}")
+    print(f"Forecast Improvement: {report['executive_summary']['forecast_accuracy_improvement']}")
+    print(f"Grid Capacity Freed: {report['executive_summary']['grid_capacity_freed_mw']}")
     print("=" * 60)
     
     return report

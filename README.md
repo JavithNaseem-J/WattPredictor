@@ -1,14 +1,14 @@
-# ⚡ WattPredictor
+# WattPredictor
 
-### **AI-Powered Electricity Demand Forecasting for Grid Optimization**
+### Production-Grade AI-Powered Electricity Demand Forecasting for Grid Optimization
 
-> **Production-grade ML system that reduces grid operational costs by $1.38M annually through 96.5% accurate hourly demand forecasting** using ensemble models and 672-hour time series features.
+> ML system that reduces grid operational costs by $1.38M annually through 96.5% accurate hourly demand forecasting using ensemble models, 672-hour time series features, and production MLOps practices (DVC + Evidently).
 
 [Live Demo](https://wattpredictor.streamlit.app/)
 
 ---
 
-## 📊 Business Impact
+## Business Impact
 
 | Metric | Value | Impact |
 |--------|-------|---------|
@@ -22,7 +22,7 @@
 
 ---
 
-## 🎯 The Problem
+## The Problem
 
 **Challenge**: Energy grid operators face a critical dilemma:
 - Traditional forecasting tools have **10%+ error rates**
@@ -35,178 +35,149 @@
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### **1. Advanced Time Series Forecasting** 📈
+### 1. Advanced Time Series Forecasting
 - **Ensemble Models**: XGBoost + LightGBM with hyperparameter tuning
 - **Deep Lag Features**: 672-hour (28-day) demand history captures weekly patterns
 - **Weather Integration**: Temperature, humidity, wind speed from Open-Meteo API
 - **Temporal Encoding**: Hour, day-of-week, month, weekend, holiday flags
 - **Cross-Validation**: TimeSeriesSplit prevents data leakage
 
-### **2. Production MLOps Pipeline** 🔄
-- **DVC Orchestration**: Reproducible 6-stage pipeline (ingest → deploy)
-- **Feature Store**: Hopsworks for versioned features and model registry
-- **Automated Training**: GridSearchCV with 5-fold time-aware CV
-- **Model Selection**: Automatic deployment of best RMSE model
-- **Drift Detection**: Evidently AI monitors feature and prediction drift
+### 2. Production MLOps Pipeline
+- **DVC Orchestration**: Reproducible 3-stage pipeline (data, train, predict)
+- **Version Control**: Data, models, and pipelines tracked with DVC
+- **Automated Training**: GridSearchCV with time-aware cross-validation
+- **Drift Monitoring**: Evidently AI tracks feature/prediction drift automatically
+- **Unified Config**: Single dataclass (`config.py`) as source of truth
 
-### **3. Business Intelligence** 💰
+### 3. Business Intelligence
 - **ROI Calculator**: Automatic cost-benefit analysis per evaluation
 - **Savings Tracker**: Per-hour and annual cost reduction metrics
 - **Benchmark Comparison**: Performance vs. industry 10% baseline
 - **Impact Reporting**: JSON artifacts with detailed breakdowns
 
-### **4. Real-Time Inference** 🌐
+### 4. Real-Time Inference
 - **Streamlit Dashboard**: Interactive map visualization (11 NYISO zones)
 - **Sub-Second Latency**: Live predictions for all zones
 - **Batch Predictions**: Scheduled forecasts via inference pipeline
 - **API Integration**: EIA electricity + Open-Meteo weather APIs
 
-### **5. Production Deployment** 🚀
-- **Docker Containerized**: One-command deployment with UV
-- **CI/CD Pipeline**: GitHub Actions → Docker Hub (automated)
-- **Kubernetes Ready**: Deployment, service, secrets configs included
-- **Health Checks**: Built-in monitoring and auto-restart
+### 5. Production Deployment
+- **Docker Containerized**: Multi-stage build with UV for fast installs
+- **Comprehensive Tests**: 82 tests covering critical paths (pytest)
+- **CI/CD**: GitHub Actions pipeline with Docker Hub publishing
+- **Health Checks**: Built-in monitoring and error handling
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
-### **System Overview**
+### System Overview
 
 ```mermaid
 graph TB
     subgraph "Data Sources"
-        EIA[EIA API<br/>Electricity Demand<br/>NYISO Zones]
-        Weather[Open-Meteo API<br/>Weather Data<br/>11 Locations]
+        EIA[EIA API<br/>Electricity Demand<br/>NYISO 11 Zones]
+        Weather[Open-Meteo API<br/>Archive + Forecast<br/>Hourly Weather]
     end
     
-    subgraph "Data Pipeline - DVC Orchestrated"
-        Ingest[1. Data Ingestion<br/>365 Days Historical]
-        Validate[2. Validation<br/>Schema & Quality Checks]
-        Engineer[3. Feature Engineering<br/>672h Lags + Temporal]
-        FeatureStore[(Hopsworks<br/>Feature Groups & Views)]
+    subgraph "DVC Pipeline - 3 Stages"
+        Stage1[prepare_data<br/>Ingest + Validate + Engineer<br/>672h lag features]
+        Stage2[train_model<br/>Train + Evaluate + Drift<br/>Evidently monitoring]
+        Stage3[predict<br/>Batch inference<br/>Generate forecasts]
     end
     
-    subgraph "ML Pipeline"
-        Train[4. Model Training<br/>XGBoost + LightGBM<br/>GridSearchCV]
-        Evaluate[5. Evaluation<br/>RMSE, MAE, MAPE<br/>+ ROI Analysis]
-        Registry[(Hopsworks<br/>Model Registry)]
+    subgraph "Artifacts"
+        Data[(Processed Data<br/>CSV)]
+        Model[(Trained Model<br/>joblib)]
+        Metrics[(Metrics + Business Impact<br/>JSON)]
+        Drift[(Drift Reports<br/>HTML + JSON)]
     end
     
-    subgraph "Inference Layer"
-        RealTime[Streamlit Dashboard<br/>Real-Time Predictions]
-        Batch[Batch Inference<br/>Scheduled Forecasts]
-        API[Prediction API<br/>RESTful Endpoint]
+    subgraph "Deployment"
+        Dashboard[Streamlit Dashboard<br/>Interactive Map]
+        Docker[Docker Container<br/>Kubernetes-Ready]
     end
     
-    subgraph "Monitoring & Analytics"
-        Drift[Drift Detection<br/>Evidently AI]
-        Metrics[Performance Tracking<br/>Business + ML Metrics]
-        Alerts[Budget Alerts<br/>Threshold Monitoring]
-    end
+    EIA --> Stage1
+    Weather --> Stage1
+    Stage1 --> Data
+    Data --> Stage2
+    Stage2 --> Model
+    Stage2 --> Metrics
+    Stage2 --> Drift
+    Model --> Stage3
+    Stage3 --> Dashboard
+    Model --> Dashboard
+    Dashboard --> Docker
     
-    EIA --> Ingest
-    Weather --> Ingest
-    Ingest --> Validate
-    Validate --> Engineer
-    Engineer --> FeatureStore
-    
-    FeatureStore --> Train
-    Train --> Evaluate
-    Evaluate --> Registry
-    
-    Registry --> RealTime
-    Registry --> Batch
-    Registry --> API
-    
-    RealTime --> Metrics
-    Batch --> Metrics
-    Metrics --> Drift
-    Drift --> Alerts
-    
-    style FeatureStore fill:#4CAF50
-    style Train fill:#FF9800
-    style Registry fill:#2196F3
-    style RealTime fill:#9C27B0
+    style Stage1 fill:#4CAF50
+    style Stage2 fill:#FF9800
+    style Stage3 fill:#2196F3
+    style Dashboard fill:#9C27B0
     style Drift fill:#F44336
 ```
 
-### **ML Pipeline Flow (DVC Stages)**
+### ML Pipeline Flow
 
 ```mermaid
 sequenceDiagram
     participant DVC as DVC Pipeline
-    participant APIs as External APIs
-    participant Validate as Validation
-    participant Feature as Feature Eng
-    participant Hopsworks as Feature Store
-    participant Train as Model Training
-    participant Eval as Evaluation
-    participant Registry as Model Registry
-    participant Monitor as Monitoring
+    participant APIs as EIA + Open-Meteo
+    participant Config as config.py
+    participant Train as Trainer
+    participant Evidently as Evidently AI
 
-    DVC->>APIs: 1. Ingest Data (365 days)
+    DVC->>APIs: 1. prepare_data stage
     APIs-->>DVC: Electricity + Weather Data
-    
-    DVC->>Validate: 2. Schema Validation
-    Validate->>Validate: Check Types<br/>Missing Values<br/>Data Quality
-    Validate-->>DVC: Validation Status (JSON)
-    
-    DVC->>Feature: 3. Feature Engineering
-    Feature->>Feature: 672h Lag Features<br/>Temporal Features<br/>Weather Features<br/>Rolling Averages
-    Feature->>Hopsworks: Upload Feature Group
-    Hopsworks-->>Feature: Feature View Created
-    
-    DVC->>Train: 4. Model Training
-    Train->>Train: TimeSeriesSplit (5-fold CV)
-    Train->>Train: GridSearchCV<br/>XGBoost vs LightGBM
-    Train->>Hopsworks: Upload Best Model
-    Hopsworks-->>Train: Model Registered
-    
-    DVC->>Eval: 5. Model Evaluation
-    Eval->>Eval: Calculate RMSE, MAE, MAPE, R²
-    Eval->>Eval: Business Impact Analysis<br/>($1.38M savings, 6mo ROI)
-    Eval->>Hopsworks: Upload Metrics + Plots
-    Hopsworks-->>Eval: Artifacts Saved
-    
-    DVC->>Monitor: 6. Drift Detection
-    Monitor->>Monitor: Feature Distribution Drift<br/>Prediction Drift<br/>Performance Drift
-    Monitor-->>DVC: Drift Report (HTML + JSON)
-    
-    DVC-->>DVC: Pipeline Complete ✅
+    DVC->>DVC: Validate schema and quality
+    DVC->>DVC: Engineer 672h lag + temporal features
+    DVC-->>Config: preprocessed.csv
+
+    DVC->>Train: 2. train_model stage
+    Train->>Config: Load unified config
+    Train->>Train: TimeSeriesSplit CV (3 folds)
+    Train->>Train: GridSearchCV (XGBoost + LightGBM)
+    Train->>Evidently: Run drift detection
+    Evidently-->>Train: drift_report.html + drift_report.json
+    Train-->>Config: model.joblib + metrics.json + business_impact.json
+
+    DVC->>DVC: 3. predict stage
+    DVC->>Config: Load trained model
+    DVC->>DVC: Generate batch predictions
+    DVC-->>Config: predictions.csv
 ```
 
 ---
 
-## 💰 Model Performance & Cost Savings
+## Model Performance and Cost Savings
 
-### **Evaluation Metrics** (90-Day Test Set)
+### Evaluation Metrics (90-Day Test Set)
 
 | Metric | WattPredictor | Industry Baseline | Improvement |
 |--------|---------------|-------------------|-------------|
-| **RMSE** | 85.0 MW | 250 MW | **66% better** ⬇️ |
-| **MAE** | 55.0 MW | 180 MW | **69% better** ⬇️ |
-| **MAPE** | 3.5% | 10% | **65% reduction** ⬇️ |
-| **R² Score** | 0.96 | 0.75 | **28% higher** ⬆️ |
+| **RMSE** | 85.0 MW | 250 MW | 66% better |
+| **MAE** | 55.0 MW | 180 MW | 69% better |
+| **MAPE** | 3.5% | 10% | 65% reduction |
+| **R2 Score** | 0.96 | 0.75 | 28% higher |
 
-### **Business Impact Analysis**
+### Business Impact Analysis
 
 **Per Grid Zone (NYISO Average: 2,500 MW)**
 
 | Cost Component | Baseline (10% Error) | WattPredictor (3.5% Error) | Annual Savings |
 |----------------|---------------------|---------------------------|----------------|
 | **Reserve Capacity** | 375 MW @ $120K/MW/yr | 131 MW @ $120K/MW/yr | **$29.3M** |
-| **Energy Imbalance** | 250 MW × 8,760h × $97.5 | 87.5 MW × 8,760h × $97.5 | **$138.4M** |
-| **Total Per Zone** | — | — | **$1.38M** |
+| **Energy Imbalance** | 250 MW x 8,760h x $97.5 | 87.5 MW x 8,760h x $97.5 | **$138.4M** |
+| **Total Per Zone** | -- | -- | **$1.38M** |
 
 **ROI Calculation**
 
 ```
 ML Infrastructure Investment:    $200,000
 Annual Savings (1 Zone):         $1,380,000
-Payback Period:                  0.15 years (6 months) ✅
+Payback Period:                  0.15 years (6 months)
 ROI (Annual):                    590%
 ```
 
@@ -216,248 +187,225 @@ ROI (Annual):                    590%
 |-------|----------------|--------------|
 | 1 Zone | $1.38M | $6.9M |
 | 5 Zones | $6.9M | $34.5M |
-| 11 Zones (Full NYISO) | **$15.2M** | **$76M** 🚀 |
-
-**Run the ROI calculator:**
-```bash
-python -c "from src.WattPredictor.utils.business_metrics import demo_calculation; demo_calculation()"
-```
+| 11 Zones (Full NYISO) | **$15.2M** | **$76M** |
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### **Prerequisites**
+### Prerequisites
 - Python 3.10+
 - EIA API Key ([Get free key](https://www.eia.gov/opendata/))
-- Hopsworks Account (optional, for feature store)
 
-### **1. Clone & Install**
+### 1. Clone and Install
 
 ```bash
 git clone https://github.com/JavithNaseem-J/WattPredictor.git
 cd WattPredictor
 
 # Create environment
-conda create -n WattPredictor python=3.10 -y
-conda activate WattPredictor
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 ```
 
-### **2. Configure API Key**
+### 2. Configure API Key
 
 ```bash
 # Create .env file
 echo "ELEC_API_KEY=your_eia_api_key_here" > .env
-echo "HOPSWORKS_API_KEY=your_hopsworks_key" >> .env  # Optional
 ```
 
-### **3. Run ML Pipeline**
+### 3. Run the DVC Pipeline
 
 ```bash
-# Train model from scratch (takes ~30 min)
+# Run full pipeline (data -> train -> predict)
 dvc repro
 
-# Or run individual stages
-dvc repro -s ingest
-dvc repro -s engineer
-dvc repro -s train
-dvc repro -s evaluate
+# This executes:
+# 1. prepare_data: Downloads data + engineers features -> preprocessed.csv
+# 2. train_model: Trains models + evaluates + drift detection -> model.joblib
+# 3. predict: Generates predictions -> predictions.csv
+
+# Check pipeline visualization
+dvc dag
+
+# View metrics
+dvc metrics show
 ```
 
-### **4. Launch Dashboard**
+### 4. Run Individual Stages
 
-**Option A: Streamlit App**
 ```bash
+# Run only the training pipeline
+python src/WattPredictor/pipeline/training_pipeline.py
+
+# Run only the inference pipeline
+python src/WattPredictor/pipeline/inference_pipeline.py
+```
+
+### 5. Launch Dashboard
+
+```bash
+# Streamlit app
 streamlit run app.py
 # Open http://localhost:8501
 ```
 
-**Option B: Docker**
-```bash
-# Pull from Docker Hub
-docker pull javithnaseem/wattpredictor:latest
-docker run -p 8501:8501 -e ELEC_API_KEY=xxx javithnaseem/wattpredictor
+### 6. Docker Deployment
 
-# Or build locally
+```bash
+# Build and run
 docker build -t wattpredictor .
 docker run -p 8501:8501 --env-file .env wattpredictor
-```
 
-**Option C: Kubernetes**
-```bash
-# Update secrets
-kubectl create secret generic wattpredictor-secrets \
-  --from-literal=ELEC_API_KEY=xxx \
-  --from-literal=HOPSWORKS_API_KEY=xxx
-
-# Deploy
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
+# Or use pre-built image
+docker pull javithnaseem/wattpredictor:latest
+docker run -p 8501:8501 -e ELEC_API_KEY=your_key javithnaseem/wattpredictor
 ```
 
 ---
 
-## 📚 Documentation
-
-### **Project Structure**
+## Project Structure
 
 ```
 WattPredictor/
 ├── src/WattPredictor/
-│   ├── components/          # ML pipeline components
-│   │   ├── features/        # Ingestion, validation, engineering
-│   │   ├── training/        # Trainer, evaluator (with ROI calc)
-│   │   ├── inference/       # Batch predictions
-│   │   └── monitor/         # Drift detection (Evidently AI)
-│   ├── pipeline/            # DVC stage orchestrators
-│   ├── config/              # Unified ConfigManager (Pydantic)
-│   ├── entity/              # Config entities (Pydantic models)
+│   ├── components/
+│   │   ├── features/            # Data pipeline components
+│   │   │   ├── ingestion.py     # EIA + Weather API data fetching
+│   │   │   ├── validation.py    # Schema and quality validation
+│   │   │   └── engineering.py   # Feature engineering (672h lags)
+│   │   ├── training/
+│   │   │   ├── trainer.py       # XGBoost + LightGBM training
+│   │   │   └── evaluator.py     # Metrics + business impact
+│   │   ├── inference/
+│   │   │   └── predictor.py     # Batch prediction generation
+│   │   └── monitor/
+│   │       ├── drift.py         # Evidently drift detection
+│   │       └── monitoring.py    # Monitoring utilities
+│   ├── pipeline/
+│   │   ├── feature_pipeline.py  # DVC stage: prepare_data
+│   │   ├── training_pipeline.py # DVC stage: train_model
+│   │   ├── inference_pipeline.py# DVC stage: predict
+│   │   └── monitoring_pipeline.py
+│   ├── config/
+│   │   └── config.py            # WattPredictorConfig dataclass
+│   ├── entity/
+│   │   └── config_entity.py     # Config entity definitions
 │   └── utils/
-│       ├── api_client.py    # EIA + Weather API clients
-│       ├── business_metrics.py  # ROI calculator
-│       ├── ts_generator.py  # Time series feature generator
-│       └── helpers.py       # I/O utilities
+│       ├── api_client.py        # EIA + Open-Meteo API clients
+│       ├── business_metrics.py  # ROI and cost savings calculator
+│       ├── ts_generator.py      # Time series feature generator
+│       ├── helpers.py           # I/O utilities
+│       ├── logging.py           # Logging configuration
+│       ├── exception.py         # Custom exception handling
+│       └── plot.py              # Visualization utilities
 │
-├── app.py                   # Streamlit dashboard
-├── dvc.yaml                 # ML pipeline definition (6 stages)
-├── Dockerfile               # Production container (UV)
-├── k8s/                     # Kubernetes configs (ready)
-├── config_file/             # YAML configs + schema
-└── artifacts/               # Model outputs
-    ├── trainer/model.joblib
-    ├── evaluation/metrics.json
-    └── evaluation/business_impact.json
+├── app.py                       # Streamlit dashboard
+├── dvc.yaml                     # DVC pipeline (3 stages)
+├── Dockerfile                   # Multi-stage Docker build (UV)
+├── config_file/
+│   ├── config.yaml              # Application configuration
+│   ├── params.yaml              # Training hyperparameters
+│   └── schema.yaml              # Data validation schema
+├── k8s/                         # Kubernetes manifests
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── secrets.yaml
+├── tests/                       # Test suite (82 tests)
+│   ├── test_basic.py            # Project structure tests
+│   ├── test_features.py         # Feature engineering tests
+│   ├── test_api_client.py       # API client tests
+│   ├── test_models.py           # Model training tests
+│   └── test_integration.py      # Integration tests
+├── artifacts/                   # Pipeline outputs
+│   ├── trainer/model.joblib
+│   ├── evaluation/metrics.json
+│   ├── evaluation/business_impact.json
+│   ├── drift/drift_report.html
+│   ├── drift/drift_report.json
+│   ├── engineering/preprocessed.csv
+│   └── prediction/predictions.csv
+├── data/
+│   ├── raw/                     # Raw API responses
+│   │   ├── elec_data/           # EIA hourly demand JSON files
+│   │   └── wx_data/             # Weather data
+│   └── processed/               # Merged electricity + weather CSV
+├── notebooks/                   # EDA and project notebooks
+├── requirements.txt             # Production dependencies
+└── requirements-dev.txt         # Development dependencies
 ```
 
-### **DVC Pipeline Stages**
+### DVC Pipeline (dvc.yaml)
 
-```yaml
-# dvc.yaml
-stages:
-  ingest:
-    cmd: python main.py --stage feature_pipeline --step ingestion
-    deps: [src/, config_file/]
-    outs: [artifacts/ingestion/]
-  
-  validate:
-    cmd: python main.py --stage feature_pipeline --step validation
-    deps: [artifacts/ingestion/]
-    outs: [artifacts/validation/]
-  
-  engineer:
-    cmd: python main.py --stage feature_pipeline --step engineering
-    deps: [artifacts/validation/]
-    outs: [artifacts/engineering/]
-  
-  train:
-    cmd: python main.py --stage training_pipeline
-    deps: [artifacts/engineering/]
-    outs: [artifacts/trainer/]
-  
-  evaluate:
-    cmd: python main.py --stage evaluation_pipeline
-    deps: [artifacts/trainer/]
-    outs: [artifacts/evaluation/]
-    metrics: [artifacts/evaluation/metrics.json]
-  
-  monitor:
-    cmd: python main.py --stage monitoring_pipeline
-    deps: [artifacts/evaluation/]
-    outs: [artifacts/drift/]
+The pipeline has 3 stages that run sequentially:
+
+```
+prepare_data -> train_model -> predict
 ```
 
-### **Configuration**
+| Stage | Command | Inputs | Outputs |
+|-------|---------|--------|---------|
+| **prepare_data** | `feature_pipeline.py` | EIA + Weather APIs | `preprocessed.csv`, `elec_wx_demand.csv` |
+| **train_model** | `training_pipeline.py` | `preprocessed.csv`, `params.yaml` | `model.joblib`, `metrics.json`, `business_impact.json`, `drift/` |
+| **predict** | `inference_pipeline.py` | `model.joblib` | `predictions.csv` |
+
+### Configuration
 
 **Environment Variables** (`.env`)
 ```bash
 # Required
 ELEC_API_KEY=your_eia_api_key
-
-# Optional
-HOPSWORKS_API_KEY=your_key
-HOPSWORKS_PROJECT=WattPredictor
-WX_API=https://api.open-meteo.com/v1/forecast
-ELEC_API=https://api.eia.gov/v2/electricity/rto/region-sub-ba-data/data/
 ```
 
 **Hyperparameters** (`config_file/params.yaml`)
 ```yaml
 training:
-  input_seq_len: 672        # 28 days × 24 hours
-  step_size: 23              # Forecast horizon
-  cv_folds: 5                # TimeSeriesSplit folds
-
-xgboost:
-  n_estimators: [100, 200]
-  max_depth: [6, 10]
-  learning_rate: [0.01, 0.1]
-
-lightgbm:
-  num_leaves: [31, 50]
-  learning_rate: [0.01, 0.1]
+  input_seq_len: 672    # 28 days x 24 hours
+  step_size: 1           # Sliding window step
+  cv_folds: 3            # TimeSeriesSplit folds
 ```
 
+**Unified Config** (`src/WattPredictor/config/config.py`)
+
+All paths, API endpoints, and pipeline settings are managed through a single `WattPredictorConfig` dataclass with computed properties for every artifact path.
+
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-### **Core ML/AI**
-- **Models**: XGBoost, LightGBM (ensemble)
-- **Data Science**: Pandas, NumPy, scikit-learn
-- **Feature Store**: Hopsworks (versioning + registry)
-- **Orchestration**: DVC (reproducible pipelines)
-- **Monitoring**: Evidently AI (drift detection)
+### Core ML
+- **Models**: XGBoost, LightGBM (best model selected via GridSearchCV)
+- **Data Science**: pandas, NumPy, scikit-learn
+- **Orchestration**: DVC (reproducible 3-stage pipeline)
+- **Monitoring**: Evidently AI (feature and prediction drift)
 
-### **Backend & APIs**
-- **APIs**: EIA (electricity), Open-Meteo (weather)
-- **Config**: Pydantic (validation), YAML
-- **Logging**: Python logging with file + stream handlers
-- **Storage**: Joblib (models), JSON (metrics)
+### Data and APIs
+- **Electricity**: EIA API (NYISO hourly demand, 11 sub-regions)
+- **Weather**: Open-Meteo API (archive + forecast endpoints)
+- **Storage**: Joblib (models), JSON (metrics), CSV (data)
 
-### **Frontend**
+### Frontend
 - **Dashboard**: Streamlit
-- **Visualization**: Plotly, PyDeck (map)
-- **Real-Time**: Sub-second inference latency
+- **Visualization**: Plotly, PyDeck (interactive zone map)
 
-### **Infrastructure**
-- **Containerization**: Docker (UV for fast installs)
-- **CI/CD**: GitHub Actions → Docker Hub
-- **Orchestration**: Kubernetes-ready (deployment/service/secrets)
-- **Deployment**: Render, AWS/GCP compatible
-
----
-
-## 📈 Performance & Scalability
-
-### **Benchmarks** (Local Testing)
-
-| Metric | Value | Notes |
-|--------|-------|-------|
-| **Training Time** | ~25 min | 365 days data, GridSearchCV |
-| **Inference Latency** | <500ms | Single zone prediction |
-| **Dashboard Load** | <2s | 11 zones simultaneously |
-| **Feature Engineering** | ~5 min | 672-hour lags for 365 days |
-| **API Response** | <1s | EIA + Weather data fetch |
-
-### **Scalability**
-
-- **Horizontal**: Stateless inference, load-balancable
-- **Model Serving**: Can serve 100+ predictions/sec
-- **Data Volume**: Tested with 365 days × 24 hours × 11 zones
-- **Feature Store**: Hopsworks handles 1M+ feature rows
+### Infrastructure
+- **Containerization**: Docker (multi-stage build with UV)
+- **CI/CD**: GitHub Actions (`.github/workflows/ci-cd.yml`)
+- **Container Registry**: Docker Hub
+- **Orchestration**: Kubernetes-ready (deployment, service, secrets)
 
 ---
 
-## 🎓 ML Engineering Highlights
+## ML Engineering Highlights
 
-### **1. Time Series Feature Engineering**
+### Time Series Feature Engineering
 
 **Lag Features** (672 hours = 28 days)
 ```python
-# Captures weekly seasonality (7-day cycles)
 lags = [1, 2, 3, 6, 12, 24, 48, 72, 168, 336, 672]
 for lag in lags:
     df[f'demand_lag_{lag}h'] = df.groupby('zone')['demand'].shift(lag)
@@ -469,75 +417,57 @@ df['hour'] = df['date'].dt.hour
 df['day_of_week'] = df['date'].dt.dayofweek
 df['month'] = df['date'].dt.month
 df['is_weekend'] = df['day_of_week'].isin([5, 6])
-df['is_holiday'] = df['date'].isin(holiday_dates)
 ```
 
-**Weather Features**
-- Temperature (°C)
-- Humidity (%)
-- Wind speed (km/h)
-- Weather codes (categorical)
+**Weather Features**: Temperature, humidity, wind speed, weather codes
 
-### **2. Time-Aware Cross-Validation**
+### Time-Aware Cross-Validation
 
 ```python
 from sklearn.model_selection import TimeSeriesSplit
 
-tscv = TimeSeriesSplit(n_splits=5)
+tscv = TimeSeriesSplit(n_splits=3)
 for train_idx, val_idx in tscv.split(X):
     X_train, X_val = X[train_idx], X[val_idx]
     # Prevents future data leakage
 ```
 
-### **3. Hyperparameter Optimization**
+### Hyperparameter Optimization
 
 ```python
 from sklearn.model_selection import GridSearchCV
 
-param_grid = {
-    'n_estimators': [100, 200],
-    'max_depth': [6, 10],
-    'learning_rate': [0.01, 0.1]
-}
-
 grid = GridSearchCV(
-    estimator=XGBRegressor(),
+    estimator=model,
     param_grid=param_grid,
-    cv=TimeSeriesSplit(5),
+    cv=TimeSeriesSplit(3),
     scoring='neg_root_mean_squared_error'
 )
 ```
 
-
 ---
 
-## 🔒 Production Deployment
+## Deployment
 
-### **Docker Deployment**
+### Docker
 
-**Build & Run**
 ```bash
 docker build -t wattpredictor .
 docker run -d \
   -p 8501:8501 \
   -e ELEC_API_KEY=${ELEC_API_KEY} \
-  -e HOPSWORKS_API_KEY=${HOPSWORKS_API_KEY} \
   --name wattpredictor \
   wattpredictor:latest
 ```
 
-**Health Checks**
+**Health Check**
 ```bash
-# Streamlit
 curl http://localhost:8501/_stcore/health
-
-# Docker logs
-docker logs -f wattpredictor
 ```
 
-### **CI/CD Pipeline**
+### CI/CD Pipeline
 
-**GitHub Actions** (`.github/workflows/cicd.yaml`)
+**GitHub Actions** (`.github/workflows/ci-cd.yml`)
 ```mermaid
 graph LR
     A[Push to main] --> B[Run Tests<br/>pytest]
@@ -552,55 +482,45 @@ graph LR
     style F fill:#FF9800
 ```
 
-**Automatically triggers on:**
-- Push to `main` branch
-- Pull request to `main`
+**Triggers**: Push to `main`, pull requests to `main`
 
-**Artifacts published:**
-- Docker Hub: `javithnaseem/wattpredictor:latest`
-- Docker Hub: `javithnaseem/wattpredictor:<sha>`
+**Published artifacts**: `javithnaseem/wattpredictor:latest` and `javithnaseem/wattpredictor:<sha>`
 
-### **Kubernetes Deployment**
+### Kubernetes
 
 ```bash
-# 1. Create secrets
+# Create secrets
 kubectl create secret generic wattpredictor-secrets \
-  --from-literal=ELEC_API_KEY=xxx \
-  --from-literal=HOPSWORKS_API_KEY=xxx
+  --from-literal=ELEC_API_KEY=your_key
 
-# 2. Deploy application
+# Deploy
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 
-# 3. Check status
-kubectl get pods -l app=wattpredictor
-kubectl get svc wattpredictor
-
-# 4. Access dashboard
+# Access dashboard
 kubectl port-forward svc/wattpredictor 8501:8501
-# http://localhost:8501
 ```
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Install dev dependencies
 pip install -r requirements-dev.txt
 
-# Run tests
+# Run all tests (82 tests: 80 pass, 2 skip for live API)
+pytest tests/ -v
+
+# Run with coverage
 pytest tests/ -v --cov=src/WattPredictor
 
-# Specific test suites
-pytest tests/test_features.py
-pytest tests/test_training.py
-
-# Code quality
-black src/
-flake8 src/
-mypy src/
-isort src/
+# Run specific test files
+pytest tests/test_basic.py       # Project structure
+pytest tests/test_features.py    # Feature engineering
+pytest tests/test_api_client.py  # API clients
+pytest tests/test_models.py      # Model training
+pytest tests/test_integration.py # Integration tests
 
 # DVC pipeline validation
 dvc dag
@@ -609,35 +529,25 @@ dvc repro --dry
 
 ---
 
-## 🐛 Troubleshooting
-
-### **Common Issues**
+## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| **ModuleNotFoundError** | Set `PYTHONPATH=/app/src` or run from project root |
-| **Model not found** | Run `dvc repro -s train` to train model |
-| **Hopsworks connection error** | Check `HOPSWORKS_API_KEY` in `.env` |
-| **EIA API rate limit** | Wait 1 hour or use different API key |
-| **Feature store empty** | Run `dvc repro -s engineer` |
-| **Docker build fails** | Ensure `artifacts/` exists with dummy files for CI/CD |
+| **ModuleNotFoundError** | Set `PYTHONPATH` to include `src/` or run `pip install -e .` |
+| **Model not found** | Run `dvc repro` to execute the full pipeline |
+| **EIA API rate limit** | Wait 1 hour or use a different API key |
+| **Docker build fails** | Ensure `artifacts/` directories exist |
 | **Predictions not shown** | Check if `dvc repro` completed successfully |
 
-### **Debug Mode**
-
 ```bash
-# Verbose logging
-export LOG_LEVEL=DEBUG
-python main.py --stage training_pipeline
-
-# Check DVC pipeline
+# Check DVC pipeline status
 dvc status
 dvc dag
 ```
 
 ---
 
-## 📄 License
+## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 

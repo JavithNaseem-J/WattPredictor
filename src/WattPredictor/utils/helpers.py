@@ -7,7 +7,6 @@ from WattPredictor.utils.logging import logger
 
 
 def read_yaml(file_path: str) -> ConfigBox:
-    """Read and parse YAML file, returns ConfigBox for dot notation access"""
     try:
         with open(file_path, encoding="utf8") as yaml_file:
             config = yaml.safe_load(yaml_file)
@@ -19,14 +18,12 @@ def read_yaml(file_path: str) -> ConfigBox:
 
 
 def create_directories(dir_paths: list):
-    """Create directories if they don't exist"""
     for dir_path in dir_paths:
         Path(dir_path).mkdir(parents=True, exist_ok=True)
         logger.info(f"created directory at: {dir_path}")
 
 
 def save_json(file_path: str, data: dict):
-    """Save dictionary as JSON file"""
     try:
         Path(file_path).parent.mkdir(parents=True, exist_ok=True)
         with open(file_path, 'w') as json_file:
@@ -38,7 +35,6 @@ def save_json(file_path: str, data: dict):
 
 
 def load_json(file_path: str) -> dict:
-    """Load JSON file"""
     try:
         with open(file_path, encoding="utf8") as json_file:
             data = json.load(json_file)
@@ -50,7 +46,6 @@ def load_json(file_path: str) -> dict:
 
 
 def save_bin(obj, file_path: str):
-    """Save object using joblib"""
     try:
         Path(file_path).parent.mkdir(parents=True, exist_ok=True)
         joblib.dump(obj, file_path)
@@ -61,7 +56,6 @@ def save_bin(obj, file_path: str):
 
 
 def load_bin(file_path: str):
-    """Load object using joblib"""
     try:
         obj = joblib.load(file_path)
         logger.info(f"Binary file loaded from: {file_path}")

@@ -1,9 +1,5 @@
 artifacts_root: artifacts
 
-feature_store:
-  hopsworks_project_name: WattPredictor
-  hopsworks_api_key: ${hopsworks_api_key}
-
 data:
   root_dir: data
   elec_raw_data: data/raw/elec_data
@@ -35,21 +31,12 @@ evaluation:
 
 
 prediction:
-    root_dir: artifacts/prediction
-    model_name: wattpredictor_xgboost
-    model_version: 1
-    feature_view_name: elec_wx_features_view
-    feature_view_version: 1
-    n_features: 672
-    predictions_df: artifacts/prediction/predictions.csv
+  root_dir: artifacts/prediction
+  model_path: artifacts/trainer/model.joblib
+  predictions_df: artifacts/prediction/predictions.csv
 
 monitoring:
-  
   root_dir: artifacts/monitoring
-  predictions_fg_name: elec_wx_predictions
-  predictions_fg_version: 2
-  actuals_fg_name: elec_wx_features
-  actuals_fg_version: 2
   monitoring_df: artifacts/monitoring/monitoring_df.csv
 
 

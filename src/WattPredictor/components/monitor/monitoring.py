@@ -1,9 +1,9 @@
 import pandas as pd
+import os
 from datetime import datetime, timedelta
 import pytz
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error, r2_score, root_mean_squared_error
 from WattPredictor.utils.exception import CustomException
-from WattPredictor.utils.feature import feature_store_instance
 from WattPredictor.utils.helpers import create_directories, save_json
 from WattPredictor.entity.config_entity import MonitoringConfig
 from WattPredictor.utils.logging import logger
@@ -11,23 +11,23 @@ from WattPredictor.utils.logging import logger
 class Monitoring:
     def __init__(self, config: MonitoringConfig):
         self.config = config
-        self.feature_store = feature_store_instance()
 
     def predictions_and_actuals(self):
         logger.info("Starting monitoring process for predictions vs. actuals")
         try:
-            predictions_fg = self.feature_store.feature_store.get_feature_group(
-                name=self.config.predictions_fg_name,
-                version=self.config.predictions_fg_version
-            )
-            actuals_fg = self.feature_store.feature_store.get_feature_group(
-                name=self.config.actuals_fg_name,
-                version=self.config.actuals_fg_version
-            )
-            predictions_df = predictions_fg.read()
-            actuals_df = actuals_fg.read()
+            # Load predictions from artifacts
+            predictions_path = "artifacts/prediction/predictions.csv"
+            if not os.path.exists(predictions_path):
+                raise CustomException(f"Predictions not found: {predictions_path}", None)
+            predictions_df = pd.read_csv(predictions_path)
+            
+            # Load actuals from preprocessed data
+            actuals_path = "artifacts/engineering/preprocessed.csv"
+            if not os.path.exists(actuals_path):
+                raise CustomException(f"Actuals not found: {actuals_path}", None)
+            actuals_df = pd.read_csv(actuals_path)
         except Exception as e:
-            raise CustomException(f"Failed to load feature groups: {str(e)}", None)
+            raise CustomException(f"Failed to load data: {str(e)}", None)
 
         predictions_df['date'] = pd.to_datetime(predictions_df['date']).dt.tz_convert('UTC')
         actuals_df['date'] = pd.to_datetime(actuals_df['date']).dt.tz_convert('UTC')

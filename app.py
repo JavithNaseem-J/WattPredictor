@@ -109,22 +109,14 @@ def eastern_to_utc(eastern_dt):
 
 @st.cache_resource
 def load_model():
-    """Load trained model from Hopsworks or local artifacts"""
+    """Load trained model from local artifacts"""
     try:
-        # Try loading from local artifacts first (for local development)
-        if os.path.exists("artifacts/trainer/model.joblib"):
-            return joblib.load("artifacts/trainer/model.joblib")
-        
-        # For deployment: Download model from Hopsworks
-        st.info("Loading model from Hopsworks...")
-        from WattPredictor.utils.feature import feature_store_instance
-        fs = feature_store_instance()
-        mr = fs.get_model_registry()
-        model = mr.get_model("watt_predictor_model", version=1)
-        model_dir = model.download()
-        model_path = os.path.join(model_dir, "model.joblib")
+        model_path = "artifacts/trainer/model.joblib"
+        if not os.path.exists(model_path):
+            st.error(f"Model not found: {model_path}")
+            st.info("Run training first: python src/WattPredictor/pipeline/training_pipeline.py")
+            st.stop()
         return joblib.load(model_path)
-        
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
         st.stop()

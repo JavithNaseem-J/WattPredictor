@@ -3,12 +3,6 @@ from typing import Dict, Any
 from pydantic import BaseModel, ConfigDict
 
 
-class FeatureStoreConfig(BaseModel):
-    hopsworks_project_name: str
-    hopsworks_api_key: str
-    model_config = ConfigDict(protected_namespaces=())
-
-
 class IngestionConfig(BaseModel):
     root_dir: Path
     elec_raw_data: Path
@@ -58,20 +52,12 @@ class EvaluationConfig(BaseModel):
 
 
 class PredictionConfig(BaseModel):
-    model_name: str
-    model_version: int
-    feature_view_name: str
-    feature_view_version: int
-    n_features: int
+    model_path: Path
     predictions_df: Path
     model_config = ConfigDict(protected_namespaces=())
 
 
 class MonitoringConfig(BaseModel):
-    predictions_fg_name: str
-    predictions_fg_version: int
-    actuals_fg_name: str
-    actuals_fg_version: int
     monitoring_df: Path
     model_config = ConfigDict(protected_namespaces=())
 

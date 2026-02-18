@@ -23,10 +23,6 @@ load_dotenv()
 
 
 class Ingestion:
-    """
-    Batch data ingestion for DVC pipeline.
-    Includes file caching for reproducibility and efficiency.
-    """
     
     def __init__(self, config: IngestionConfig):
         self.config = config
@@ -38,7 +34,6 @@ class Ingestion:
         self.openmeteo = openmeteo_requests.Client(session=retry_session)
 
     def _fetch_electricity_data(self, year, month, day):
-        """Fetch electricity data with file caching for batch processing."""
         file_path = self.config.elec_raw_data / f"hourly_demand_{year}-{month:02d}-{day:02d}.json"
         target_date = datetime(year, month, day)
         now = datetime.now()
@@ -75,20 +70,11 @@ class Ingestion:
                     return pd.DataFrame() 
                 time.sleep(2 ** attempt)
 
-    def _fetch_weather_data(self, start_date, end_date):
-        """Fetch weather data with file caching for batch processing."""
-        file_path = self.config.wx_raw_data / f"weather_data_{start_date.strftime('%Y-%m-%d')}_to_{end_date.strftime('%Y-%m-%d')}.csv"
-        
-        if file_path.exists():
-            return pd.read_csv(file_path)
-
-        # Build params using shared client
+    def _fetch_weather_chunk(self, url, start_date, end_date):
         params = self.weather_client.build_archive_params(start_date, end_date)
-        
-        responses = self.openmeteo.weather_api(self.config.wx_api, params=params)
+        responses = self.openmeteo.weather_api(url, params=params)
         hourly = responses[0].Hourly()
-
-        df = pd.DataFrame({
+        return pd.DataFrame({
             "date": pd.date_range(
                 start=pd.to_datetime(hourly.Time(), unit="s", utc=True),
                 end=pd.to_datetime(hourly.TimeEnd(), unit="s", utc=True),
@@ -101,13 +87,35 @@ class Ingestion:
             "wind_speed_10m": hourly.Variables(3).ValuesAsNumpy()
         })
 
+    def _fetch_weather_data(self, start_date, end_date):
+        file_path = self.config.wx_raw_data / f"weather_data_{start_date.strftime('%Y-%m-%d')}_to_{end_date.strftime('%Y-%m-%d')}.csv"
+        
+        if file_path.exists():
+            return pd.read_csv(file_path)
+
+        archive_url = "https://archive-api.open-meteo.com/v1/archive"
+        forecast_url = self.config.wx_api
+        # Forecast API covers ~90 days back; use archive for older data
+        cutoff = pd.Timestamp.now(tz="UTC") - timedelta(days=85)
+        
+        dfs = []
+        if start_date < cutoff:
+            archive_end = min(end_date, cutoff)
+            logger.info(f"Fetching archive weather: {start_date.strftime('%Y-%m-%d')} to {archive_end.strftime('%Y-%m-%d')}")
+            dfs.append(self._fetch_weather_chunk(archive_url, start_date, archive_end))
+        if end_date >= cutoff:
+            forecast_start = max(start_date, cutoff)
+            logger.info(f"Fetching forecast weather: {forecast_start.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+            dfs.append(self._fetch_weather_chunk(forecast_url, forecast_start, end_date))
+        
+        df = pd.concat(dfs, ignore_index=True).drop_duplicates(subset=["date"]).sort_values("date").reset_index(drop=True)
+
         # Save to cache for DVC tracking
         create_directories([self.config.wx_raw_data])
         df.to_csv(file_path, index=False)
         return df
 
     def _prepare_and_merge(self, elec_data_list, weather_df):
-        """Merge electricity and weather data."""
         elec_df = pd.concat(elec_data_list, ignore_index=True)
         elec_df["date"] = pd.to_datetime(elec_df["period"], utc=True)
         weather_df["date"] = pd.to_datetime(weather_df["date"], utc=True)
@@ -125,10 +133,6 @@ class Ingestion:
         return combined_df
 
     def download(self):
-        """
-        Download all data for the batch pipeline.
-        Fetches 365 days of data and saves to files for DVC.
-        """
         try:
             now = datetime.now().replace(minute=0, second=0, microsecond=0)
             start = now - timedelta(days=365)

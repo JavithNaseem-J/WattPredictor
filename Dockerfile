@@ -1,54 +1,54 @@
-FROM python:3.10-slim
+# Stage 1: Builder
+FROM python:3.10 AS builder
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+# Install uv for ultra-fast package installation
+RUN pip install --no-cache-dir uv
 
-WORKDIR /app
-
-# Install system dependencies and uv
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    build-essential \
-    && curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && rm -rf /var/lib/apt/lists/*
-
-# Add uv to PATH
-ENV PATH="/root/.local/bin:$PATH"
+WORKDIR /build
 
 # Copy requirements
 COPY requirements.txt .
 
-# Install dependencies with uv (much faster than pip)
-RUN uv pip install --system --no-cache -r requirements.txt
+# Install to a specific prefix (we'll copy this to runtime)
+RUN uv pip install --prefix=/install --no-cache -r requirements.txt
+
+# Stage 2: Runtime
+FROM python:3.10-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/src:/app
+
+WORKDIR /app
+
+# Install ONLY curl for healthcheck (no build tools = -150MB)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed packages from builder
+COPY --from=builder /install /usr/local
 
 # Copy application code
 COPY src/ src/
 COPY app.py .
 COPY config_file/ config_file/
 
-# Copy artifacts
-COPY artifacts/trainer/ artifacts/trainer/
-COPY artifacts/engineering/ artifacts/engineering/
+# Create necessary directories
+RUN mkdir -p artifacts/trainer artifacts/engineering artifacts/prediction \
+    logs data/processed data/raw/elec_data data/raw/wx_data
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash appuser && \
     chown -R appuser:appuser /app
 USER appuser
 
-# Create necessary directories
-RUN mkdir -p artifacts/prediction logs data/processed
-
-# Environment variables
-ENV ELEC_API=https://api.eia.gov/v2/electricity/rto/region-sub-ba-data/data/
-ENV WX_API=https://api.open-meteo.com/v1/forecast
-
 # Expose Streamlit port
 EXPOSE 8501
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8501}/_stcore/health || exit 1
+    CMD curl -f http://localhost:8501/_stcore/health || exit 1
 
 # Run Streamlit dashboard
-CMD ["sh", "-c", "streamlit run app.py --server.port=${PORT:-8501} --server.address=0.0.0.0 --server.headless=true"]
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]

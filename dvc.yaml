@@ -1,49 +1,48 @@
 stages:
-  feature_pipeline:
-    cmd: python -m WattPredictor.pipeline.feature_pipeline
+  prepare_data:
+    cmd: python src/WattPredictor/pipeline/feature_pipeline.py
     deps:
       - src/WattPredictor/components/features/
-      - src/WattPredictor/config/
-      - config_file/config.yaml
-      - config_file/params.yaml
-      - config_file/schema.yaml
+      - src/WattPredictor/config/config.py
     outs:
       - data/processed/elec_wx_demand.csv:
           cache: true
       - artifacts/engineering/preprocessed.csv:
           cache: true
+    desc: "Ingest data from APIs and engineer time-series features"
 
-  training_pipeline:
-    cmd: python -m WattPredictor.pipeline.training_pipeline
+  train_model:
+    cmd: python src/WattPredictor/pipeline/training_pipeline.py
     deps:
+      - src/WattPredictor/config/config.py
       - src/WattPredictor/components/training/
+      - src/WattPredictor/components/monitor/drift.py
+      - src/WattPredictor/utils/ts_generator.py
       - artifacts/engineering/preprocessed.csv
-      - config_file/config.yaml
-      - config_file/params.yaml
+    params:
+      - config_file/params.yaml:
+          - training.input_seq_len
+          - training.cv_folds
     outs:
       - artifacts/trainer/model.joblib:
           cache: true
+      - artifacts/drift/:
+          cache: false
+    metrics:
+      - artifacts/evaluation/metrics.json:
+          cache: false
+      - artifacts/evaluation/business_impact.json:
+          cache: false
+    desc: "Train best model with grid search + Evidently drift monitoring"
 
-  inference_pipeline:
-    cmd: python -m WattPredictor.pipeline.inference_pipeline
+  predict:
+    cmd: python src/WattPredictor/pipeline/inference_pipeline.py
     deps:
-      - src/WattPredictor/components/inference/
+      - src/WattPredictor/config/config.py
       - artifacts/trainer/model.joblib
-      - config_file/config.yaml
     outs:
       - artifacts/prediction/predictions.csv:
           cache: true
-
-  monitoring_pipeline:
-    cmd: python -m WattPredictor.pipeline.monitoring_pipeline
-    deps:
-      - src/WattPredictor/components/monitor/
-      - artifacts/prediction/predictions.csv
-      - config_file/config.yaml
-    outs:
-      - artifacts/monitoring/monitoring_df.csv:
-          cache: true
-      - artifacts/drift/:
-          cache: true
+    desc: "Generate predictions for deployment"
 
 
