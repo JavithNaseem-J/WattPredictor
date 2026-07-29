@@ -21,9 +21,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install ONLY curl for healthcheck
+# Install runtime system dependencies (curl for healthcheck, libgomp1 for LightGBM OpenMP)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder
