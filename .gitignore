@@ -210,10 +210,12 @@ mlruns/
 .cache.sqlite
 .__pycache__
 
-# Exclude most artifacts but keep the model file for deployment  
+# Exclude most artifacts but keep the model file and preprocessed baseline for deployment  
 artifacts/*
 !artifacts/trainer/
 !artifacts/trainer/model.joblib
+!artifacts/engineering/
+!artifacts/engineering/preprocessed.csv
 logs/
 .env
 data/
