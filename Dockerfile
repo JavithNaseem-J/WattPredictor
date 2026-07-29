@@ -30,10 +30,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local
 
-# Copy application code
+# Copy application code and model artifacts
 COPY src/ src/
 COPY app.py .
 COPY config_file/ config_file/
+COPY artifacts/ artifacts/
 
 # Create necessary directories
 RUN mkdir -p artifacts/trainer artifacts/engineering artifacts/prediction \
