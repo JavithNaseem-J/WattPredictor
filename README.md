@@ -136,7 +136,21 @@ docker build -t wattpredictor . && docker run -p 8501:8501 wattpredictor
 
 ## Deployment
 
-[DEPLOYMENT LINK NOT FOUND — insert actual URL. CI pushes a Docker image to Docker Hub on every merge to `main` (`.github/workflows/ci-cd.yml`); no live URL is recorded in this repo.]
+WattPredictor is configured for automated cloud deployment via **Render Blueprints** (`render.yaml`) and Docker containerization.
+
+### 1-Click Render Blueprint Deployment
+
+1. Push your repository to GitHub.
+2. Log into [Render Dashboard](https://dashboard.render.com/) and click **New +** → **Blueprint**.
+3. Connect your repository `JavithNaseem-J/WattPredictor`.
+4. Render will automatically detect `render.yaml` and provision both services:
+   - **`wattpredictor-dashboard`**: Streamlit interactive UI web service (Docker runtime).
+   - **`wattpredictor-api`**: FastAPI REST API service (`uvicorn`).
+5. Under the Environment tab for each service, set your `ELEC_API_KEY`.
+
+### Docker Hub CI/CD
+
+On every merge to `main`, GitHub Actions (`.github/workflows/ci-cd.yml`) automatically builds and pushes the multi-stage Docker image to Docker Hub.
 
 ## Future Work
 

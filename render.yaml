@@ -1,0 +1,29 @@
+services:
+  # Streamlit Interactive Dashboard
+  - type: web
+    name: wattpredictor-dashboard
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: ELEC_API_KEY
+        sync: false
+      - key: ELEC_API
+        value: https://api.eia.gov/v2/
+      - key: WX_API
+        value: https://archive-api.open-meteo.com/v1/archive
+
+  # FastAPI REST API
+  - type: web
+    name: wattpredictor-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -e .
+    startCommand: uvicorn src.WattPredictor.api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ELEC_API_KEY
+        sync: false
+      - key: ELEC_API
+        value: https://api.eia.gov/v2/
+      - key: WX_API
+        value: https://archive-api.open-meteo.com/v1/archive
