@@ -1,17 +1,16 @@
 import os
 import json
 import pandas as pd
+from WattPredictor.config.config import WattPredictorConfig, get_config
 from WattPredictor.utils.logging import logger
-from WattPredictor.entity.config_entity import ValidationConfig
-from WattPredictor.utils.helpers import create_directories
-from WattPredictor.utils.exception import CustomException
+from WattPredictor.utils.helpers import create_directories, save_json
+
 
 class Validation:
-    def __init__(self, config: ValidationConfig):
-        self.config = config
+    def __init__(self, config: WattPredictorConfig = None):
+        self.config = config or get_config()
 
     def validate_data_types(self, data: pd.DataFrame, schema: dict):
-
         type_mapping = {
             'int': ['int64', 'int32'],
             'float': ['float64', 'float32'],
@@ -49,29 +48,27 @@ class Validation:
             return False
         return True
 
-
-    def validator(self):
-        data = pd.read_csv(self.config.data_file)
-        schema = self.config.all_schema
+    def validator(self, schema: dict = None):
+        data = pd.read_csv(self.config.processed_data_path)
+        schema = schema or {}
 
         logger.info(f"Starting validation for data with shape: {data.shape}")
             
         validation_results = {
-            'column_presence': self.validate_column_presence(data, schema),
-            'data_types': self.validate_data_types(data, schema),
+            'column_presence': self.validate_column_presence(data, schema) if schema else True,
+            'data_types': self.validate_data_types(data, schema) if schema else True,
             'missing_values': self.check_missing_values(data),
         }
             
         is_valid = all(validation_results.values())
 
-        create_directories([os.path.dirname(self.config.status_file)])
+        create_directories([self.config.status_file.parent])
 
         for check, result in validation_results.items():
             logger.info(f"{check}: {'PASSED' if result else 'FAILED'}")
 
         logger.info(f"Overall validation status: {'PASSED' if is_valid else 'FAILED'}")
 
-        with open(self.config.status_file, 'w') as f:
-            json.dump({"validation_status": is_valid}, f, indent=4)
+        save_json(self.config.status_file, {"validation_status": is_valid})
 
         return is_valid

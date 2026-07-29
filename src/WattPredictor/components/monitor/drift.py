@@ -1,42 +1,47 @@
 import os
-import sys
 import json
 import pandas as pd
-from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import timedelta
 from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset
-from evidently.metrics import (DatasetDriftMetric,ColumnDriftMetric,ColumnSummaryMetric)
-from WattPredictor.entity.config_entity import DriftConfig
+from evidently.metrics import (DatasetDriftMetric, ColumnDriftMetric, ColumnSummaryMetric)
+from WattPredictor.config.config import WattPredictorConfig, get_config
 from WattPredictor.utils.helpers import create_directories
-from WattPredictor.utils.exception import CustomException
 from WattPredictor.utils.logging import logger
 
 
 class Drift:
-    def __init__(self,config: DriftConfig):
-        self.config = config
+    def __init__(self, config: WattPredictorConfig = None):
+        self.config = config or get_config()
 
     def _load_data(self, start_date, end_date):
-        try:
-            # Load from preprocessed data
-            preprocessed_path = "artifacts/engineering/preprocessed.csv"
-            if not os.path.exists(preprocessed_path):
-                raise CustomException(f"Preprocessed data not found: {preprocessed_path}", sys)
-            df = pd.read_csv(preprocessed_path)
-            df['date'] = pd.to_datetime(df['date'], utc=True).dt.tz_localize(None)
-            start_dt = pd.to_datetime(start_date)
-            end_dt = pd.to_datetime(end_date)
-            df = df[(df['date'] >= start_dt) & (df['date'] <= end_dt)]
-            df = df.drop(columns=["date_str"], errors="ignore")
-            return df
-        except Exception as e:
-            raise CustomException(f"Error loading data: {e}", sys)
+        preprocessed_path = str(self.config.preprocessed_data_path)
+        if not os.path.exists(preprocessed_path):
+            raise FileNotFoundError(f"Preprocessed data not found: {preprocessed_path}")
+        df = pd.read_csv(preprocessed_path)
+        df['date'] = pd.to_datetime(df['date'], utc=True).dt.tz_localize(None)
+        start_dt = pd.to_datetime(start_date)
+        end_dt = pd.to_datetime(end_date)
+        df = df[(df['date'] >= start_dt) & (df['date'] <= end_dt)]
+        df = df.drop(columns=["date_str"], errors="ignore")
+        return df
 
     def Detect(self):
         try:
-            baseline_df = self._load_data((datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d"), (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d"))
-            current_df = self._load_data((datetime.now() - timedelta(days=29)).strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d"))
+            preprocessed_path = str(self.config.preprocessed_data_path)
+            if not os.path.exists(preprocessed_path):
+                raise FileNotFoundError(f"Preprocessed data not found: {preprocessed_path}")
+            
+            raw_df = pd.read_csv(preprocessed_path)
+            max_date = pd.to_datetime(raw_df['date'], utc=True).dt.tz_localize(None).max()
+
+            baseline_start = max_date - timedelta(days=365)
+            baseline_end = max_date - timedelta(days=30)
+            current_start = max_date - timedelta(days=29)
+            current_end = max_date
+
+            baseline_df = self._load_data(baseline_start, baseline_end)
+            current_df = self._load_data(current_start, current_end)
 
             report = Report(metrics=[
                 DataDriftPreset(),
@@ -47,25 +52,15 @@ class Drift:
             ])
 
             report.run(reference_data=baseline_df, current_data=current_df)
-            create_directories([self.config.report_dir])
-            html_path = self.config.report_dir / "drift_report.html"
-            json_path = self.config.report_dir / "drift_report.json"
+            create_directories([self.config.drift_report_dir])
+            html_path = self.config.drift_report_html
+            json_path = self.config.drift_report_json
 
             report.save_html(str(html_path))
             report_dict = report.as_dict()
 
-            def json_serializer(obj):
-                if hasattr(obj, 'isoformat'):
-                    return obj.isoformat()
-                elif hasattr(obj, 'tolist'):
-                    return obj.tolist()
-                elif hasattr(obj, '__dict__'):
-                    return obj.__dict__
-                else:
-                    return str(obj)
-
             with open(json_path, "w") as f:
-                json.dump(report_dict, f, indent=4, default=json_serializer)
+                json.dump(report_dict, f, indent=4, default=str)
 
             drift_detected = report_dict['metrics'][0]['result'].get('dataset_drift', False)
 
@@ -74,4 +69,5 @@ class Drift:
             return drift_detected, report_dict
 
         except Exception as e:
-            raise CustomException(f"Drift detection failed: {e}", sys)
+            logger.error(f"Drift detection failed: {e}")
+            raise

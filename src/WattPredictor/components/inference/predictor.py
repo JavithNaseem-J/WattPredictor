@@ -3,55 +3,55 @@ import numpy as np
 import os
 import joblib
 from datetime import datetime, timedelta
-from WattPredictor.utils.exception import CustomException
+from WattPredictor.config.config import WattPredictorConfig, get_config
 from WattPredictor.utils.helpers import create_directories
-from WattPredictor.entity.config_entity import PredictionConfig
 from WattPredictor.utils.ts_generator import average_demand_last_4_weeks
 from WattPredictor.utils.logging import logger
 
+
 class Predictor:
-    def __init__(self, config: PredictionConfig):
-        self.config = config
+    def __init__(self, config: WattPredictorConfig = None):
+        self.config = config or get_config()
         self.model = None
         
-        # Load model from local artifacts
-        model_path = str(config.model_path)
+        model_path = str(self.config.model_path)
         if not os.path.exists(model_path):
-            raise CustomException(f"Model not found: {model_path}", None)
+            raise FileNotFoundError(f"Model not found: {model_path}")
         
         self.model = joblib.load(model_path)
         logger.info(f"Loaded model from {model_path}")
 
     def _load_batch_features(self, current_date):
         logger.info(f"Loading features up to {current_date}")
-        preprocessed_path = "artifacts/engineering/preprocessed.csv"
+        preprocessed_path = str(self.config.preprocessed_data_path)
         if not os.path.exists(preprocessed_path):
-            raise CustomException(f"Preprocessed data not found: {preprocessed_path}", None)
+            raise FileNotFoundError(f"Preprocessed data not found: {preprocessed_path}")
         
         df = pd.read_csv(preprocessed_path)
-        df['date'] = pd.to_datetime(df['date'])
+        df['date'] = pd.to_datetime(df['date'], utc=True).dt.tz_localize(None)
+        current_date_dt = pd.to_datetime(current_date, utc=True).tz_localize(None)
         
-        # Filter to recent 29 days
-        fetch_data_from = current_date - timedelta(days=29)
-        df = df[(df['date'] >= fetch_data_from) & (df['date'] <= current_date)]
+        max_date = df['date'].max()
+        target_end_date = min(current_date_dt, max_date)
+        fetch_data_from = target_end_date - timedelta(days=29)
         
-        if df.empty:
-            raise CustomException("No data available in the recent 29-day window", None)
+        df_filtered = df[(df['date'] >= fetch_data_from) & (df['date'] <= target_end_date)]
         
-        location_ids = df['sub_region_code'].unique()
+        if df_filtered.empty:
+            df_filtered = df.tail(self.config.input_seq_len * 11)
+        
+        location_ids = df_filtered['sub_region_code'].unique()
         feature_cols = ['temperature_2m', 'hour', 'day_of_week', 'month', 'is_weekend', 'is_holiday']
         
-        # Build features per sub-region using last available row
         rows = []
         for loc in location_ids:
-            sub_data = df[df['sub_region_code'] == loc].sort_values('date')
+            sub_data = df_filtered[df_filtered['sub_region_code'] == loc].sort_values('date')
             if sub_data.empty:
                 continue
             last_row = sub_data.iloc[-1]
             row = {'sub_region_code': loc, 'date': current_date}
-            # Use demand values as lag features
             demand_vals = sub_data['demand'].values
-            n_lags = min(len(demand_vals), 672)  # up to input_seq_len
+            n_lags = min(len(demand_vals), self.config.input_seq_len)
             for i in range(n_lags):
                 row[f'demand_previous_{n_lags - i}_hour'] = demand_vals[-(n_lags - i)]
             for col in feature_cols:
@@ -73,7 +73,7 @@ class Predictor:
             'predicted_demand': predictions.round(0),
             'date': current_date
         })
-        create_directories([self.config.predictions_df.parent])
-        predictions_df.to_csv(self.config.predictions_df, index=False)
+        create_directories([self.config.predictions_path.parent])
+        predictions_df.to_csv(self.config.predictions_path, index=False)
         logger.info(f"Predictions generated for {current_date} with {len(predictions_df)} records")
         return predictions_df

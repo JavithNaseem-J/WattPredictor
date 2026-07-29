@@ -1,19 +1,19 @@
 # Stage 1: Builder
-FROM python:3.10 AS builder
+FROM python:3.12-slim AS builder
 
 # Install uv for ultra-fast package installation
 RUN pip install --no-cache-dir uv
 
 WORKDIR /build
 
-# Copy requirements
-COPY requirements.txt .
+# Copy dependency definition files for deterministic installation
+COPY pyproject.toml uv.lock* requirements.txt ./
 
-# Install to a specific prefix (we'll copy this to runtime)
-RUN uv pip install --prefix=/install --no-cache -r requirements.txt
+# Install packages into /install prefix using uv
+RUN uv pip install --prefix=/install --no-cache -r pyproject.toml
 
 # Stage 2: Runtime
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -21,7 +21,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install ONLY curl for healthcheck (no build tools = -150MB)
+# Install ONLY curl for healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*

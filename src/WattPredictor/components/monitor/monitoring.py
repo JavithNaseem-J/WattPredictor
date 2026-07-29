@@ -2,52 +2,39 @@ import pandas as pd
 import os
 from datetime import datetime, timedelta
 import pytz
-from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error, r2_score, root_mean_squared_error
-from WattPredictor.utils.exception import CustomException
-from WattPredictor.utils.helpers import create_directories, save_json
-from WattPredictor.entity.config_entity import MonitoringConfig
+from WattPredictor.config.config import WattPredictorConfig, get_config
+from WattPredictor.utils.helpers import create_directories
 from WattPredictor.utils.logging import logger
 
+
 class Monitoring:
-    def __init__(self, config: MonitoringConfig):
-        self.config = config
+    def __init__(self, config: WattPredictorConfig = None):
+        self.config = config or get_config()
 
     def predictions_and_actuals(self):
         logger.info("Starting monitoring process for predictions vs. actuals")
-        try:
-            # Load predictions from artifacts
-            predictions_path = "artifacts/prediction/predictions.csv"
-            if not os.path.exists(predictions_path):
-                raise CustomException(f"Predictions not found: {predictions_path}", None)
-            predictions_df = pd.read_csv(predictions_path)
-            
-            # Load actuals from preprocessed data
-            actuals_path = "artifacts/engineering/preprocessed.csv"
-            if not os.path.exists(actuals_path):
-                raise CustomException(f"Actuals not found: {actuals_path}", None)
-            actuals_df = pd.read_csv(actuals_path)
-        except Exception as e:
-            raise CustomException(f"Failed to load data: {str(e)}", None)
+        predictions_path = str(self.config.predictions_path)
+        if not os.path.exists(predictions_path):
+            raise FileNotFoundError(f"Predictions not found: {predictions_path}")
+        predictions_df = pd.read_csv(predictions_path)
+        
+        actuals_path = str(self.config.preprocessed_data_path)
+        if not os.path.exists(actuals_path):
+            raise FileNotFoundError(f"Actuals not found: {actuals_path}")
+        actuals_df = pd.read_csv(actuals_path)
 
         predictions_df['date'] = pd.to_datetime(predictions_df['date']).dt.tz_convert('UTC')
         actuals_df['date'] = pd.to_datetime(actuals_df['date']).dt.tz_convert('UTC')
         actuals_df = actuals_df.rename(columns={'subba': 'sub_region_code', 'value': 'demand'})
 
-        # Log DataFrame details for debugging
         logger.info(f"Predictions DataFrame shape: {predictions_df.shape}")
         logger.info(f"Predictions date range: {predictions_df['date'].min()} to {predictions_df['date'].max()}")
-        logger.info(f"Predictions unique sub_region_code: {sorted(predictions_df['sub_region_code'].unique())}")
         logger.info(f"Actuals DataFrame shape: {actuals_df.shape}")
         logger.info(f"Actuals date range: {actuals_df['date'].min()} to {actuals_df['date'].max()}")
-        logger.info(f"Actuals unique sub_region_code: {sorted(actuals_df['sub_region_code'].unique())}")
 
-        # Check for common sub_region_code values
         common_codes = set(predictions_df['sub_region_code']).intersection(set(actuals_df['sub_region_code']))
         logger.info(f"Common sub_region_code values: {sorted(common_codes)}")
-        if not common_codes:
-            logger.warning("No common sub_region_code values between predictions and actuals")
 
-        # Fix: Compare predictions made yesterday with actuals available today
         to_date = datetime.now(tz=pytz.UTC).replace(hour=0, minute=0, second=0, microsecond=0)
         from_date = to_date - timedelta(days=1)
 
@@ -59,15 +46,10 @@ class Monitoring:
         )
         logger.info(f"Combined DataFrame shape after 24-hour merge: {combined_df.shape}")
 
-        try:
-            mask = (combined_df['date'] >= from_date) & (combined_df['date'] <= to_date)
-            monitoring_df = combined_df.loc[mask].sort_values(by=['sub_region_code', 'date'])
-        except Exception as e:
-            logger.error(f"Error filtering DataFrame for 24-hour window: {str(e)}")
-            raise CustomException(f"Failed to filter DataFrame: {str(e)}", None)
+        mask = (combined_df['date'] >= from_date) & (combined_df['date'] <= to_date)
+        monitoring_df = combined_df.loc[mask].sort_values(by=['sub_region_code', 'date'])
 
-
-        create_directories([self.config.monitoring_df.parent])
-        monitoring_df.to_csv(self.config.monitoring_df, index=False)
-        logger.info(f"Monitoring data and metrics saved for {len(monitoring_df)}")
+        create_directories([self.config.monitoring_df_path.parent])
+        monitoring_df.to_csv(self.config.monitoring_df_path, index=False)
+        logger.info(f"Monitoring data and metrics saved for {len(monitoring_df)} records")
         return monitoring_df

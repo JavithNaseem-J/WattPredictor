@@ -1,20 +1,17 @@
 import pandas as pd
-from pathlib import Path
 from sklearn.preprocessing import LabelEncoder
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
-from WattPredictor.entity.config_entity import EngineeringConfig
+from WattPredictor.config.config import WattPredictorConfig, get_config
 from WattPredictor.utils.helpers import create_directories
 from WattPredictor.utils.logging import logger
 
 
 class Engineering:
- 
-    
-    def __init__(self, config: EngineeringConfig):
-        self.config = config
+    def __init__(self, config: WattPredictorConfig = None):
+        self.config = config or get_config()
 
     def basic_preprocessing(self) -> pd.DataFrame:
-        df = pd.read_csv(self.config.data_file)
+        df = pd.read_csv(self.config.processed_data_path)
         le = LabelEncoder()
         df['sub_region_code'] = le.fit_transform(df['subba'])
         df.rename(columns={'subba': 'sub_region', 'value': 'demand'}, inplace=True)
@@ -38,12 +35,11 @@ class Engineering:
         return df
 
     def transform(self):
-        # DVC handles dependency checking - no need to manually check validation status
         df = self.feature_engineering(self.basic_preprocessing())
         df.sort_values("date", inplace=True)
         
-        create_directories([self.config.preprocessed.parent])
-        df.to_csv(self.config.preprocessed, index=False)
-        logger.info(f"Preprocessed data saved to {self.config.preprocessed}")
+        create_directories([self.config.preprocessed_data_path.parent])
+        df.to_csv(self.config.preprocessed_data_path, index=False)
+        logger.info(f"Preprocessed data saved to {self.config.preprocessed_data_path}")
         
         return df

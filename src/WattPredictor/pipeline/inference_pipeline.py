@@ -1,12 +1,10 @@
 import sys
 from pathlib import Path
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from WattPredictor.config.config import get_config
 from WattPredictor.components.inference.predictor import Predictor
-from WattPredictor.entity.config_entity import PredictionConfig
 from WattPredictor.utils.logging import logger
 
 
@@ -21,12 +19,7 @@ class InferencePipeline:
             logger.info("INFERENCE PIPELINE")
             logger.info("=" * 60)
             
-            predictor_config = PredictionConfig(
-                model_path=self.config.model_path,
-                predictions_df=self.config.predictions_path
-            )
-            
-            predictor = Predictor(config=predictor_config)
+            predictor = Predictor(config=self.config)
             predictor.predict()
             
             logger.info("=" * 60)

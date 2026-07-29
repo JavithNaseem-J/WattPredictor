@@ -2,7 +2,7 @@ import os
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -37,8 +37,7 @@ class EIAClient:
             "api_key": self.api_key
         }
     
-    def fetch_day(self, year: int, month: int, day: int, session: Optional[requests.Session] = None,timeout: int = 30) -> pd.DataFrame:
-
+    def fetch_day(self, year: int, month: int, day: int, session: Optional[requests.Session] = None, timeout: int = 30) -> pd.DataFrame:
         params = self.build_params(year, month, day)
         req = session or requests
         
@@ -55,8 +54,7 @@ class EIAClient:
             print(f"Warning: Failed to fetch EIA data for {year}-{month:02d}-{day:02d}: {e}")
             return pd.DataFrame()
     
-    def fetch_range(self, start_date: datetime, end_date: datetime,session: Optional[requests.Session] = None) -> pd.DataFrame:
-
+    def fetch_range(self, start_date: datetime, end_date: datetime, session: Optional[requests.Session] = None) -> pd.DataFrame:
         all_data = []
         current = start_date
         
@@ -82,7 +80,6 @@ class EIAClient:
         df['sub_region_code'] = df['subba'].map(NYISO_ZONE_MAPPING)
         df['demand'] = pd.to_numeric(df['value'], errors='coerce')
         
-        # Remove duplicates and sort
         df = df.drop_duplicates(subset=['date', 'sub_region_code'])
         df = df.sort_values(['sub_region_code', 'date'])
         
@@ -91,7 +88,6 @@ class EIAClient:
 
 class WeatherClient:
     
-    # API endpoints
     FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
     ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
     
@@ -138,12 +134,3 @@ class WeatherClient:
             "timeformat": "unixtime",
             "timezone": "America/New_York"
         }
-
-
-# Convenience functions for simple usage
-def get_eia_client() -> EIAClient:
-    return EIAClient()
-
-
-def get_weather_client() -> WeatherClient:
-    return WeatherClient()

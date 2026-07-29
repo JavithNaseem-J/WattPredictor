@@ -1,12 +1,10 @@
 import sys
 from pathlib import Path
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from WattPredictor.config.config import get_config
 from WattPredictor.components.monitor.monitoring import Monitoring
-from WattPredictor.entity.config_entity import MonitoringConfig
 from WattPredictor.utils.logging import logger
 
 
@@ -21,17 +19,13 @@ class MonitoringPipeline:
             logger.info("PREDICTION MONITORING PIPELINE")
             logger.info("=" * 60)
             
-            monitoring_config = MonitoringConfig(
-                monitoring_df=self.config.artifacts_dir / "monitoring" / "monitoring_df.csv"
-            )
-            
-            monitor = Monitoring(config=monitoring_config)
+            monitor = Monitoring(config=self.config)
             monitoring_df = monitor.predictions_and_actuals()
             
             logger.info("=" * 60)
             logger.info("MONITORING COMPLETED")
             logger.info(f"Records compared: {len(monitoring_df)}")
-            logger.info(f"Output: {monitoring_config.monitoring_df}")
+            logger.info(f"Output: {self.config.monitoring_df_path}")
             logger.info("=" * 60)
             
         except Exception as e:

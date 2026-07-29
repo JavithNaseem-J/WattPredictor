@@ -1,7 +1,5 @@
 import os
 import sys
-import time
-import requests
 import pandas as pd
 from pathlib import Path
 import openmeteo_requests
@@ -10,13 +8,11 @@ from retry_requests import retry
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
+from WattPredictor.config.config import WattPredictorConfig, get_config
 from WattPredictor.utils.logging import logger
-from WattPredictor.utils.exception import CustomException
 from WattPredictor.utils.helpers import create_directories, save_json, load_json
-from WattPredictor.utils.api_client import EIAClient, WeatherClient, NYISO_ZONE_MAPPING
-from WattPredictor.entity.config_entity import IngestionConfig
+from WattPredictor.utils.api_client import EIAClient, WeatherClient
 
-# Setup cached session for batch operations
 cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
 retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
 load_dotenv()
@@ -24,21 +20,20 @@ load_dotenv()
 
 class Ingestion:
     
-    def __init__(self, config: IngestionConfig):
-        self.config = config
+    def __init__(self, config: WattPredictorConfig = None):
+        self.config = config or get_config()
         self.eia_client = EIAClient(
-            api_url=config.elec_api,
-            api_key=config.elec_api_key
+            api_url=self.config.elec_api,
+            api_key=self.config.elec_api_key
         )
         self.weather_client = WeatherClient()
         self.openmeteo = openmeteo_requests.Client(session=retry_session)
 
     def _fetch_electricity_data(self, year, month, day):
-        file_path = self.config.elec_raw_data / f"hourly_demand_{year}-{month:02d}-{day:02d}.json"
+        file_path = self.config.raw_elec_data_dir / f"hourly_demand_{year}-{month:02d}-{day:02d}.json"
         target_date = datetime(year, month, day)
         now = datetime.now()
         
-        # Only use cache for data that's at least 2 days old (API may have delays)
         days_old = (now - target_date).days
         use_cache = days_old >= 2
         
@@ -47,28 +42,12 @@ class Ingestion:
             if 'response' in data and 'data' in data['response']:
                 return pd.DataFrame(data['response']['data'])
 
-        # Build params using shared client
-        params = self.eia_client.build_params(year, month, day)
-        
-        # Retry logic with exponential backoff
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                response = retry_session.get(self.eia_client.api_url, params=params, timeout=30)
-                response.raise_for_status()
-                data = response.json()
-                
-                # Save to cache for DVC tracking
-                create_directories([self.config.elec_raw_data])
-                save_json(file_path, data)
-                
-                return pd.DataFrame(data['response']['data']) if 'response' in data and 'data' in data['response'] else pd.DataFrame()
-            except (requests.exceptions.RequestException, requests.exceptions.ConnectionError) as e:
-                logger.warning(f"Attempt {attempt + 1}/{max_retries} failed for {year}-{month:02d}-{day:02d}: {str(e)}")
-                if attempt == max_retries - 1:
-                    logger.error(f"Failed to fetch data for {year}-{month:02d}-{day:02d} after {max_retries} attempts")
-                    return pd.DataFrame() 
-                time.sleep(2 ** attempt)
+        df = self.eia_client.fetch_day(year, month, day, session=retry_session)
+        if not df.empty:
+            create_directories([self.config.raw_elec_data_dir])
+            # Cache response to file
+            save_json(file_path, {"response": {"data": df.to_dict(orient="records")}})
+        return df
 
     def _fetch_weather_chunk(self, url, start_date, end_date):
         params = self.weather_client.build_archive_params(start_date, end_date)
@@ -88,14 +67,13 @@ class Ingestion:
         })
 
     def _fetch_weather_data(self, start_date, end_date):
-        file_path = self.config.wx_raw_data / f"weather_data_{start_date.strftime('%Y-%m-%d')}_to_{end_date.strftime('%Y-%m-%d')}.csv"
+        file_path = self.config.raw_weather_data_dir / f"weather_data_{start_date.strftime('%Y-%m-%d')}_to_{end_date.strftime('%Y-%m-%d')}.csv"
         
         if file_path.exists():
             return pd.read_csv(file_path)
 
         archive_url = "https://archive-api.open-meteo.com/v1/archive"
         forecast_url = self.config.wx_api
-        # Forecast API covers ~90 days back; use archive for older data
         cutoff = pd.Timestamp.now(tz="UTC") - timedelta(days=85)
         
         dfs = []
@@ -110,8 +88,7 @@ class Ingestion:
         
         df = pd.concat(dfs, ignore_index=True).drop_duplicates(subset=["date"]).sort_values("date").reset_index(drop=True)
 
-        # Save to cache for DVC tracking
-        create_directories([self.config.wx_raw_data])
+        create_directories([self.config.raw_weather_data_dir])
         df.to_csv(file_path, index=False)
         return df
 
@@ -166,12 +143,12 @@ class Ingestion:
                 logger.warning("Merged DataFrame is empty after join.")
                 return pd.DataFrame()
 
-            create_directories([self.config.data_file.parent])
-            combined_df.to_csv(self.config.data_file, index=False)
-            logger.info(f"Saved combined dataset to {self.config.data_file}")
+            create_directories([self.config.processed_data_path.parent])
+            combined_df.to_csv(self.config.processed_data_path, index=False)
+            logger.info(f"Saved combined dataset to {self.config.processed_data_path}")
 
             return combined_df
 
         except Exception as e:
-            logger.error(f"Error in DataIngestion.download: {str(e)}")
-            raise CustomException(e, sys)
+            logger.error(f"Error in Ingestion.download: {str(e)}")
+            raise
