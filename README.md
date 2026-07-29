@@ -26,72 +26,71 @@ Grid operators need accurate short-term demand forecasts per zone to balance sup
 ```mermaid
 flowchart TB
     subgraph SOURCES["External Data Sources"]
-        EIA["EIA API<br/>hourly demand, NYIS sub-BA"]
-        WX["Open-Meteo<br/>archive + forecast"]
+        EIA["EIA API"]
+        WX["Open-Meteo API"]
     end
 
-    subgraph DATA["Data Layer — DVC stage: prepare_data"]
-        ING["Ingestion<br/>retry session + file cache"]
-        VAL["Validation<br/>status.json"]
-        FE["Feature Engineering<br/>672h lags, calendar, holidays, temperature"]
-        CSV[("data/processed/<br/>elec_wx_demand.csv")]
-        PREPROC[("artifacts/engineering/<br/>preprocessed.csv")]
-        ING --> VAL
-        VAL --> FE
-        FE --> CSV
-        FE --> PREPROC
+    subgraph DATA["Data Pipeline (DVC)"]
+        ING["Data Ingestion"]
+        VAL["Data Validation"]
+        FE["Feature Engineering"]
+        DATASTORE[("Processed Datasets")]
+        ING -->|Validate Raw Data| VAL
+        VAL -->|Generate 672h Lags| FE
+        FE -->|Save Features| DATASTORE
     end
 
-    subgraph TRAIN["Training Layer — DVC stage: train_model"]
-        GS["GridSearchCV<br/>XGBoost vs LightGBM · TimeSeriesSplit (3 folds)"]
-        MLF["MLflow tracking<br/>params, RMSE, model"]
-        DRIFT["Evidently drift report<br/>30d current vs 335d baseline"]
-        EVAL["Evaluation on 90-day holdout<br/>metrics.json"]
-        MODEL[("artifacts/trainer/<br/>model.joblib")]
-        GS --> MLF
-        GS --> MODEL
-        MODEL --> EVAL
-        MODEL --> DRIFT
+    subgraph TRAIN["Model Training and Evaluation"]
+        TRAINER["GridSearchCV Training<br/>(XGBoost vs LightGBM)"]
+        MLFLOW["MLflow Tracking"]
+        EVAL["Model Evaluation"]
+        DRIFT["Evidently Drift Report"]
+        MODELSTORE[("Trained Model Artifact<br/>model.joblib")]
+        
+        TRAINER -->|Log Metrics and Params| MLFLOW
+        TRAINER -->|Save Best Model| MODELSTORE
+        MODELSTORE -->|Calculate Holdout Metrics| EVAL
+        MODELSTORE -->|Detect Data Drift| DRIFT
     end
 
     subgraph SERVE["Serving Layer"]
-        ST["Streamlit dashboard<br/>app.py :8501 · live NYISO zone map"]
-        API["FastAPI REST API<br/>/predict /health /metrics"]
-        PRED[("DVC stage: predict<br/>predictions.csv")]
+        ST["Streamlit Dashboard"]
+        API["FastAPI REST API"]
+        PRED[("Batch Predictions")]
     end
 
-    subgraph DEVOPS["DevOps Layer"]
-        GHA["GitHub Actions<br/>pytest on PR · weekly retraining cron"]
-        DOCK["Docker multi-stage build<br/>non-root + healthcheck → Docker Hub"]
+    subgraph DEVOPS["DevOps and CI/CD"]
+        GHA["GitHub Actions CI/CD"]
+        DOCK["Docker Container"]
     end
 
-    EIA --> ING
-    WX --> ING
-    PREPROC --> GS
-    MODEL --> ST
-    MODEL --> API
-    MODEL --> PRED
-    ST -.->|deployed via| DOCK
-    GHA --> DOCK
+    EIA -->|Fetch Hourly Demand| ING
+    WX -->|Fetch Weather Data| ING
+    DATASTORE -->|Supply Features| TRAINER
+    MODELSTORE -->|Load Model| ST
+    MODELSTORE -->|Load Model| API
+    MODELSTORE -->|Batch Inference| PRED
+    ST -.->|Containerize| DOCK
+    GHA -->|Automate Retraining| DOCK
 ```
 
 ### ML Pipeline Flow (training run)
 
 ```mermaid
 flowchart TD
-    A["preprocessed.csv"] --> B["Sliding-window feature generation<br/>672-hour lags per zone"]
-    B --> C["Train/test split<br/>last 90 days held out"]
-    C --> D{"GridSearchCV<br/>scoring = neg RMSE"}
-    D --> E["XGBoost grid<br/>n_estimators, max_depth, lr"]
-    D --> F["LightGBM grid<br/>num_leaves, n_estimators, lr"]
-    E --> G["Best CV model wins<br/>logged to MLflow"]
-    F --> G
-    G --> J[("model.joblib")]
-    J --> H["Holdout evaluation<br/>MAPE / RMSE / MAE / R² → metrics.json"]
-    J --> I["Evidently drift report<br/>drift_report.html / .json"]
-    J --> K["Streamlit dashboard"]
-    J --> L["FastAPI REST API"]
-    J --> M["DVC batch predict"]
+    A["Raw Processed Data"] -->|Extract Lags & Calendar Features| B["Feature Generation"]
+    B -->|90-Day Holdout Split| C["Train/Test Split"]
+    C -->|TimeSeriesSplit Cross-Validation| D{"GridSearchCV"}
+    D -->|Evaluate Hyperparameters| E["XGBoost Model"]
+    D -->|Evaluate Hyperparameters| F["LightGBM Model"]
+    E -->|Select Winning Model| G["Best Model"]
+    F -->|Select Winning Model| G
+    G -->|Serialize Model| J[("model.joblib")]
+    J -->|Compute MAPE / RMSE / R²| H["Holdout Evaluation"]
+    J -->|Compare Baseline vs Current| I["Evidently Drift Detection"]
+    J -->|Interactive Zone Map| K["Streamlit Dashboard"]
+    J -->|REST Prediction Endpoints| L["FastAPI Service"]
+    J -->|Generate CSV Output| M["Batch Predict Pipeline"]
 ```
 
 ## REST API Endpoints
@@ -113,8 +112,6 @@ Python 3.12 · scikit-learn 1.5.2 · XGBoost 2.1.3 · LightGBM 4.5.0 · MLflow �
 
 ## Results
 
-Held-out test set = last 90 days of the dataset (100,309 hourly rows, 11 zones, 2025-02-17 → 2026-02-17). From `artifacts/evaluation/metrics.json`:
-
 | Metric | Value |
 |---|---|
 | MAPE | 2.12% |
@@ -122,7 +119,6 @@ Held-out test set = last 90 days of the dataset (100,309 hourly rows, 11 zones, 
 | MAE | 34.95 MW |
 | R² | 0.9984 |
 
-Drift report (`artifacts/drift/drift_report.json`): no dataset-level drift detected (3 of 8 columns drifted, 37.5%).
 
 ## Setup & Run
 
