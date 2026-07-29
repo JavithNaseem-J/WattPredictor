@@ -131,11 +131,12 @@ with st.spinner("Fetching live electricity data from EIA..."):
     try:
         elec_df = fetch_live_electricity_data()
         if elec_df.empty:
-            st.error("❌ Could not fetch live electricity data. Check your API key.")
-            st.stop()
+            st.warning("⚠️ Live EIA data unavailable (check ELEC_API_KEY). Using preprocessed baseline dataset.")
+            config = get_config()
+            elec_df = pd.read_csv(config.preprocessed_data_path)
+            elec_df["date"] = pd.to_datetime(elec_df["date"])
     except Exception as e:
-        st.error(f"❌ Error fetching data: {str(e)}")
-        st.info("💡 Falling back to cached data...")
+        st.warning(f"⚠️ API error: {str(e)}. Falling back to cached baseline dataset.")
         config = get_config()
         elec_df = pd.read_csv(config.preprocessed_data_path)
         elec_df["date"] = pd.to_datetime(elec_df["date"])
