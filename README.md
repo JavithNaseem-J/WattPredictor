@@ -2,9 +2,7 @@
 
 Real-time, 1-hour-ahead electricity demand forecasting for all 11 NYISO zones (New York), served as a Streamlit dashboard, a FastAPI REST API, and a Docker image.
 
-## Demo
-
-[SCREENSHOT NOT FOUND — insert demo screenshot of the Streamlit dashboard]
+🚀 **Live:** [Click Here](https://wattpredictor-dashboard.onrender.com)
 
 ## Problem
 
