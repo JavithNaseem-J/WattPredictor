@@ -1,169 +1,76 @@
 # WattPredictor
 
-Real-time, 1-hour-ahead electricity demand forecasting for all 11 NYISO zones (New York), served as a Streamlit dashboard, a FastAPI REST API, and a Docker image.
+Hourly demand forecasts for New York's 11 NYISO zones, built from electricity history and weather data and served through a Streamlit dashboard and FastAPI endpoint.
 
-## Demo
+Python 3.12 · pandas · scikit-learn · XGBoost · LightGBM · Streamlit · FastAPI · MLflow · DVC
 
-[SCREENSHOT NOT FOUND — insert demo screenshot of the Streamlit dashboard]
+## Evidence
 
-## Problem
+[Live dashboard](https://wattpredictor-dashboard.onrender.com/) · [Saved evaluation metrics](artifacts/evaluation/metrics.json)
 
-Grid operators need accurate short-term demand forecasts per zone to balance supply. WattPredictor predicts next-hour demand (MW) for each of the 11 NYISO sub-regions.
+The saved XGBoost model was scored against the stored preprocessed dataset using the evaluator's last-90-days split and 672-row history window. A read-only recomputation from `model.joblib` and `preprocessed.csv` matched `metrics.json` exactly across **17,292 holdout rows**.
 
-## Features
+| Holdout metric | Result |
+|---|---:|
+| MAE | 34.95 MW |
+| RMSE | 59.87 MW |
+| MAPE | 2.12% |
+| R² | 0.99844 |
 
-- **Live data ingestion** — hourly demand from the EIA API (`NYIS` region sub-BA data) + weather from Open-Meteo (archive + forecast endpoints), with file caching and retry sessions
-- **Feature pipeline** — 672-hour (4-week) lag windows, calendar features (hour, day-of-week, month, weekend, US federal holidays), temperature, and an engineered `average_demand_last_4_weeks` feature
-- **Model selection** — GridSearchCV over XGBoost and LightGBM with `TimeSeriesSplit` (3 folds), tracked in MLflow; winning model: XGBRegressor (`n_estimators=200, max_depth=5, learning_rate=0.1`)
-- **Drift monitoring** — Evidently report comparing the last 30 days vs. the prior 335-day baseline (HTML + JSON reports)
-- **Three ways to consume** — Streamlit dashboard with a live NYISO zone map, FastAPI endpoints (`POST /predict`, `GET /health`, `GET /metrics`), batch inference via DVC pipeline
-- **MLOps** — DVC pipeline (`prepare_data → train_model → predict`), multi-stage Dockerfile (non-root user, healthcheck), GitHub Actions CI with weekly automated retraining (cron `0 0 * * 0`), 78 pytest test functions
+The scored target timestamps span **16 December 2025 to 17 February 2026**. This is evidence for the saved model on historical data, not a measurement of the hosted dashboard's current forecast accuracy. The holdout includes **682 duplicate zone-hour targets**, and there is no evaluated seasonal-naive baseline.
 
 ## Architecture
 
-### Full System Architecture
-
 ```mermaid
-flowchart TB
-    subgraph SOURCES["External Data Sources"]
-        EIA["EIA API"]
-        WX["Open-Meteo API"]
-    end
-
-    subgraph DATA["Data Pipeline (DVC)"]
-        ING["Data Ingestion"]
-        VAL["Data Validation"]
-        FE["Feature Engineering"]
-        DATASTORE[("Processed Datasets")]
-        ING -->|Validate Raw Data| VAL
-        VAL -->|Generate 672h Lags| FE
-        FE -->|Save Features| DATASTORE
-    end
-
-    subgraph TRAIN["Model Training and Evaluation"]
-        TRAINER["GridSearchCV Training<br/>(XGBoost vs LightGBM)"]
-        MLFLOW["MLflow Tracking"]
-        EVAL["Model Evaluation"]
-        DRIFT["Evidently Drift Report"]
-        MODELSTORE[("Trained Model Artifact<br/>model.joblib")]
-        
-        TRAINER -->|Log Metrics and Params| MLFLOW
-        TRAINER -->|Save Best Model| MODELSTORE
-        MODELSTORE -->|Calculate Holdout Metrics| EVAL
-        MODELSTORE -->|Detect Data Drift| DRIFT
-    end
-
-    subgraph SERVE["Serving Layer"]
-        ST["Streamlit Dashboard"]
-        API["FastAPI REST API"]
-        PRED[("Batch Predictions")]
-    end
-
-    subgraph DEVOPS["DevOps and CI/CD"]
-        GHA["GitHub Actions CI/CD"]
-        DOCK["Docker Container"]
-    end
-
-    EIA -->|Fetch Hourly Demand| ING
-    WX -->|Fetch Weather Data| ING
-    DATASTORE -->|Supply Features| TRAINER
-    MODELSTORE -->|Load Model| ST
-    MODELSTORE -->|Load Model| API
-    MODELSTORE -->|Batch Inference| PRED
-    ST -.->|Containerize| DOCK
-    GHA -->|Automate Retraining| DOCK
+flowchart LR
+    EIA["EIA demand"] --> ING["Ingest and join"]
+    WX["Open-Meteo weather"] --> ING
+    ING --> FE["Validate and engineer"]
+    FE --> CSV[("Preprocessed CSV")]
+    CSV --> LAG["Per-zone lag windows"]
+    LAG --> SEARCH["XGBoost / LightGBM search"]
+    SEARCH --> MODEL[("Saved model")]
+    CSV --> EVAL["Holdout evaluation"]
+    MODEL --> EVAL
+    CSV --> PRED["Predictor"]
+    MODEL --> PRED
+    PRED --> UI["Streamlit dashboard"]
+    PRED --> API["FastAPI"]
 ```
 
-### ML Pipeline Flow (training run)
+The feature pipeline joins EIA demand and Open-Meteo weather by UTC timestamp, checks missingness in selected columns, and writes a local CSV. Training forms 672-row demand windows per zone, adds calendar and temperature features, and selects between XGBoost and LightGBM with `GridSearchCV` and `TimeSeriesSplit`. It serializes the selected scikit-learn pipeline and logs tuning metadata to MLflow. A separate post-training step writes an Evidently drift report.
 
-```mermaid
-flowchart TD
-    A["Raw Processed Data"] -->|Extract Lags & Calendar Features| B["Feature Generation"]
-    B -->|90-Day Holdout Split| C["Train/Test Split"]
-    C -->|TimeSeriesSplit Cross-Validation| D{"GridSearchCV"}
-    D -->|Evaluate Hyperparameters| E["XGBoost Model"]
-    D -->|Evaluate Hyperparameters| F["LightGBM Model"]
-    E -->|Select Winning Model| G["Best Model"]
-    F -->|Select Winning Model| G
-    G -->|Serialize Model| J[("model.joblib")]
-    J -->|Compute MAPE / RMSE / R²| H["Holdout Evaluation"]
-    J -->|Compare Baseline vs Current| I["Evidently Drift Detection"]
-    J -->|Interactive Zone Map| K["Streamlit Dashboard"]
-    J -->|REST Prediction Endpoints| L["FastAPI Service"]
-    J -->|Generate CSV Output| M["Batch Predict Pipeline"]
-```
+The dashboard, `POST /predict`, and batch inference all call the same `Predictor`. It reads the saved model and preprocessed CSV, prepares one feature row per zone, and writes a predictions CSV. The dashboard also fetches current EIA and weather data for display; those live responses do **not** feed the predictor today.
 
-## REST API Endpoints
+## Run locally
 
-Base: `uvicorn src.WattPredictor.api.main:app` — interactive docs at `/docs`.
-
-| Method | Endpoint | Description | Response |
-|---|---|---|---|
-| `GET` | `/` | Service status + docs link | `{service, status, documentation}` |
-| `GET` | `/health` | Health check — reports whether `model.joblib` is loaded | `{status, model_loaded, model_path, timestamp}` |
-| `POST` | `/predict` | Next-hour demand prediction for all 11 NYISO zones | `{status, prediction_time, record_count, predictions: [{sub_region_code, zone_name, predicted_demand_mw, date}]}` |
-| `GET` | `/metrics` | Latest evaluation metrics from `artifacts/evaluation/metrics.json` | `{mse, mae, mape, rmse, r2_score}` |
-
-Errors: `/predict` returns `503` if the model artifact is missing, `500` on prediction failure; `/metrics` returns `404` if training hasn't produced metrics yet.
-
-## Tech Stack
-
-Python 3.12 · scikit-learn 1.5.2 · XGBoost 2.1.3 · LightGBM 4.5.0 · MLflow · Evidently 0.4.31 · DVC · FastAPI · Streamlit 1.40.2 · Plotly/PyDeck · Docker · GitHub Actions · uv · pytest
-
-## Results
-
-| Metric | Value |
-|---|---|
-| MAPE | 2.12% |
-| RMSE | 59.87 MW |
-| MAE | 34.95 MW |
-| R² | 0.9984 |
-
-
-## Setup & Run
-
-Requires an EIA API key. Set `ELEC_API`, `WX_API`, and `ELEC_API_KEY` in a `.env` file (see `config/config.py` for defaults), then:
+Requires Python 3.12 and `uv`. The tracked model and preprocessed CSV allow the interfaces to use saved artifacts without a fresh data download.
 
 ```bash
-uv sync && uv pip install -e .                          
-python src/WattPredictor/pipeline/feature_pipeline.py   
-python src/WattPredictor/pipeline/training_pipeline.py  
-streamlit run app.py                                    
-uvicorn src.WattPredictor.api.main:app --reload         
-pytest                                                  
-docker build -t wattpredictor . && docker run -p 8501:8501 wattpredictor
+uv sync --frozen
+uv run streamlit run app.py
+uv run uvicorn src.WattPredictor.api.main:app --reload
+uv run pytest -o pythonpath=src
 ```
 
-## Deployment
+Run Streamlit and Uvicorn in separate terminals. The dashboard uses `http://localhost:8501`; API documentation uses `http://localhost:8000/docs`. To rebuild data, set `ELEC_API_KEY` and run `uv run python src/WattPredictor/pipeline/feature_pipeline.py`. The training command is `uv run python src/WattPredictor/pipeline/training_pipeline.py`; it runs a multi-model grid search. These setup and run commands were inspected from repository configuration, not executed for this README update.
 
-WattPredictor is configured for automated cloud deployment via **Render Blueprints** (`render.yaml`) and Docker containerization.
+## Verification
 
-### 1-Click Render Blueprint Deployment
+The read-only metric reproduction used the committed preprocessed CSV, saved joblib model, and the feature construction in `src/WattPredictor/utils/ts_generator.py`. It applied the split and metrics from `src/WattPredictor/components/training/evaluator.py`; the recomputed values matched the JSON artifact exactly. No model fitting, API call, or application launch was needed for that check.
 
-1. Push your repository to GitHub.
-2. Log into [Render Dashboard](https://dashboard.render.com/) and click **New +** → **Blueprint**.
-3. Connect your repository `JavithNaseem-J/WattPredictor`.
-4. Render will automatically detect `render.yaml` and provision both services:
-   - **`wattpredictor-dashboard`**: Streamlit interactive UI web service (Docker runtime).
-   - **`wattpredictor-api`**: FastAPI REST API service (`uvicorn`).
-5. Under the Environment tab for each service, set your `ELEC_API_KEY`.
+Six pytest files cover feature generation, model fit and serialization, mocked API clients, configuration basics, and endpoint response shapes. The full suite was not run during this documentation update. `dvc.yaml` defines data preparation, training, and prediction stages, but its lockfile and one declared output differ from current code and configuration.
 
-### Docker Hub CI/CD
+## Limits
 
-On every merge to `main`, GitHub Actions (`.github/workflows/ci-cd.yml`) automatically builds and pushes the multi-stage Docker image to Docker Hub.
+- **Forecast freshness:** the tracked feature dataset ends in February 2026. Inference caps history at its last row, reuses that row's temperature and calendar fields, and stamps output with the current UTC hour. The dashboard labels the next Eastern hour. A fresh Open-Meteo response is fetched, but it is not passed into inference.
+- **Evaluation scope:** offline features include temperature observed at each target hour, whereas serving uses the last stored temperature. The holdout score therefore does not validate the deployed forecast path. The saved CSV contains 4,004 duplicate zone-hour rows, so a 672-row window is not always four weeks. The evaluator's hard-coded 10% comparison is not a measured baseline and is excluded here.
+- **Operations:** the weekly GitHub Actions schedule runs tests and an import check; it does not retrain or publish a model. The monitoring CSV has no matched records. `GET /health` checks model-file existence, and the API has no authentication or rate limiting.
 
-## Future Work
+## FutureWork
 
-- Serve the FastAPI app in Docker (current image runs only the Streamlit dashboard)
-- Populate the monitoring pipeline (`artifacts/monitoring/monitoring_df.csv` is currently header-only)
-- Extend beyond 1-hour-ahead to multi-step horizons
+1. Define one forecast timestamp and construct its demand, calendar, and forecast-weather features identically in offline evaluation and serving.
+2. Add a time-stamped seasonal-naive baseline and store evaluation metadata alongside model and dataset hashes.
+3. Enforce input freshness and feature-schema checks, then wire scheduled retraining to an explicit verified deployment step.
 
-## Keep in Mind
-
-- The app fetches live data and needs a valid `ELEC_API_KEY`; without it, the dashboard stops with an error
-- Inference reads `artifacts/engineering/preprocessed.csv`, so run the feature pipeline before predicting
-- The 2.12% MAPE reflects the most recent training run committed in `artifacts/`; retraining on newer data will change it
-
-## License
-
-MIT © 2025 Javith Naseem
+Licensed under the [MIT License](LICENSE).

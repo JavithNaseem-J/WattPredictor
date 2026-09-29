@@ -216,9 +216,21 @@ artifacts/*
 !artifacts/trainer/model.joblib
 !artifacts/engineering/
 !artifacts/engineering/preprocessed.csv
+!artifacts/evaluation/
+artifacts/evaluation/*
+!artifacts/evaluation/metrics.json
 logs/
 .env
 data/
 .dvc/
 remote/
 INTERVIEW_GUIDE.md
+
+# Local agent/editor files and audit notes
+/.agent/
+/.agents/
+/docs/
+/.vscode/
+/.devcontainer/
+/README_AUDIT*.md
+/readme_audits/
