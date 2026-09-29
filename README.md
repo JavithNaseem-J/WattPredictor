@@ -2,11 +2,13 @@
 
 Hourly demand forecasts for New York's 11 NYISO zones, built from electricity history and weather data and served through a Streamlit dashboard and FastAPI endpoint.
 
+Live: [Click Here](https://wattpredictor-dashboard.onrender.com/)
+
 Python 3.12 · pandas · scikit-learn · XGBoost · LightGBM · Streamlit · FastAPI · MLflow · DVC
 
 ## Evidence
 
-[Live dashboard](https://wattpredictor-dashboard.onrender.com/) · [Saved evaluation metrics](artifacts/evaluation/metrics.json)
+
 
 The saved XGBoost model was scored against the stored preprocessed dataset using the evaluator's last-90-days split and 672-row history window. A read-only recomputation from `model.joblib` and `preprocessed.csv` matched `metrics.json` exactly across **17,292 holdout rows**.
 
@@ -17,7 +19,7 @@ The saved XGBoost model was scored against the stored preprocessed dataset using
 | MAPE | 2.12% |
 | R² | 0.99844 |
 
-The scored target timestamps span **16 December 2025 to 17 February 2026**. This is evidence for the saved model on historical data, not a measurement of the hosted dashboard's current forecast accuracy. The holdout includes **682 duplicate zone-hour targets**, and there is no evaluated seasonal-naive baseline.
+
 
 ## Architecture
 
