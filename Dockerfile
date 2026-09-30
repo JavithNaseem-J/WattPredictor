@@ -27,7 +27,8 @@ COPY artifacts/ artifacts/
 COPY deploy/ deploy/
 
 # Render supplies the deployed commit at runtime; the file records image build time.
-RUN printf '%s' "$RENDER_GIT_COMMIT" > /app/render_build_commit.txt \
+RUN python -c "from pathlib import Path; p=Path('artifacts/trainer/model.joblib'); b=p.read_bytes(); assert len(b)>1000 and not b.startswith(b'version https://git-lfs.github.com/spec/v1'), 'Model artifact is an unresolved Git LFS pointer'" \
+    && printf '%s' "$RENDER_GIT_COMMIT" > /app/render_build_commit.txt \
     && python -c "from datetime import datetime, timezone; from pathlib import Path; Path('/app/build_time.txt').write_text(datetime.now(timezone.utc).isoformat())" \
     && mkdir -p artifacts/trainer artifacts/engineering artifacts/prediction logs data/processed data/raw/elec_data data/raw/wx_data \
     && useradd --create-home --shell /bin/bash appuser \

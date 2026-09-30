@@ -54,8 +54,7 @@ def test_metrics_endpoint():
 
 def test_predict_endpoint():
     response = client.post("/predict")
-    assert response.status_code in [200, 503]
-    if response.status_code == 200:
-        data = response.json()
-        assert data["status"] == "success"
-        assert len(data["predictions"]) == 11
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["status"] == "success"
+    assert len(data["predictions"]) == 11
