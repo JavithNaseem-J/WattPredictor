@@ -2,7 +2,7 @@
 
 Hourly demand forecasts for New York's 11 NYISO zones, built from electricity history and weather data and served through a Streamlit dashboard and FastAPI endpoint.
 
-Live: [Click Here](https://wattpredictor-dashboard.onrender.com/)
+Live: [Click Here](https://wattpredictor.onrender.com/)
 
 Python 3.12 · pandas · scikit-learn · XGBoost · LightGBM · Streamlit · FastAPI · MLflow · DVC
 
