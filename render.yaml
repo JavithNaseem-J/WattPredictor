@@ -13,6 +13,6 @@ services:
       - key: ELEC_API_KEY
         sync: false
       - key: ELEC_API
-        value: https://api.eia.gov/v2/
+        value: https://api.eia.gov/v2/electricity/rto/region-sub-ba-data/data/
       - key: WX_API
         value: https://archive-api.open-meteo.com/v1/archive
