@@ -9,7 +9,6 @@ services:
     dockerContext: .
     healthCheckPath: /healthz
     autoDeployTrigger: 'off'
-    autoDeploy: false
     envVars:
       - key: ELEC_API_KEY
         sync: false
