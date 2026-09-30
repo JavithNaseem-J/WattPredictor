@@ -1,11 +1,14 @@
 services:
   - type: web
-    name: wattpredictor-dashboard
+    name: wattpredictor
     runtime: docker
     plan: free
+    repo: https://github.com/JavithNaseem-J/WattPredictor
+    branch: main
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /healthz
+    autoDeployTrigger: 'off'
     autoDeploy: false
     envVars:
       - key: ELEC_API_KEY

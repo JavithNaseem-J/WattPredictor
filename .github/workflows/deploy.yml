@@ -80,10 +80,10 @@ jobs:
       cancel-in-progress: false
     environment:
       name: production
-      url: https://wattpredictor-dashboard.onrender.com/
+      url: https://wattpredictor.onrender.com/
     env:
       DEPLOY_SHA: ${{ needs.resolve.outputs.sha }}
-      PRODUCTION_URL: ${{ vars.RENDER_PRODUCTION_URL || 'https://wattpredictor-dashboard.onrender.com' }}
+      PRODUCTION_URL: https://wattpredictor.onrender.com
     steps:
       - uses: actions/checkout@v4
         with:
