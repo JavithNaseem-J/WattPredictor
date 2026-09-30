@@ -22,6 +22,7 @@ class EIAClient:
     def __init__(self, api_url: Optional[str] = None, api_key: Optional[str] = None):
         self.api_url = api_url or os.getenv("ELEC_API")
         self.api_key = api_key or os.getenv("ELEC_API_KEY")
+        self.last_error: Optional[str] = None
     
     def build_params(self, year: int, month: int, day: int) -> Dict[str, Any]:
         return {
@@ -48,10 +49,17 @@ class EIAClient:
             
             if 'response' in data and 'data' in data['response']:
                 return pd.DataFrame(data['response']['data'])
+            self.last_error = "No data in EIA response"
             return pd.DataFrame()
-            
-        except Exception as e:
-            print(f"Warning: Failed to fetch EIA data for {year}-{month:02d}-{day:02d}: {e}")
+
+        except requests.HTTPError as exc:
+            status = exc.response.status_code if exc.response is not None else "unknown"
+            self.last_error = f"HTTP {status}"
+            print(f"Warning: Failed to fetch EIA data for {year}-{month:02d}-{day:02d}: {self.last_error}")
+            return pd.DataFrame()
+        except Exception as exc:
+            self.last_error = type(exc).__name__
+            print(f"Warning: Failed to fetch EIA data for {year}-{month:02d}-{day:02d}: {self.last_error}")
             return pd.DataFrame()
     
     def fetch_range(self, start_date: datetime, end_date: datetime, session: Optional[requests.Session] = None) -> pd.DataFrame:

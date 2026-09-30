@@ -81,12 +81,14 @@ def load_predictor():
 def fetch_live_electricity_data():
     """Fetch live electricity data from EIA API with 10-minute TTL caching"""
     client = EIAClient()
+    if not client.api_key:
+        return pd.DataFrame(), "ELEC_API_KEY is missing"
     end_date = datetime.now(pytz.utc)
     start_date = end_date - timedelta(hours=720)
     raw_df = client.fetch_range(start_date, end_date)
     if raw_df.empty:
-        return pd.DataFrame()
-    return client.process_dataframe(raw_df)
+        return pd.DataFrame(), client.last_error or "No EIA rows returned"
+    return client.process_dataframe(raw_df), None
 
 
 @st.cache_data(ttl=600)
@@ -129,9 +131,9 @@ with st.spinner("Fetching live weather..."):
 
 with st.spinner("Fetching live electricity data from EIA..."):
     try:
-        elec_df = fetch_live_electricity_data()
+        elec_df, eia_issue = fetch_live_electricity_data()
         if elec_df.empty:
-            st.warning("⚠️ Live EIA data unavailable (check ELEC_API_KEY). Using preprocessed baseline dataset.")
+            st.warning(f"⚠️ Live EIA data unavailable ({eia_issue}). Using preprocessed baseline dataset.")
             config = get_config()
             elec_df = pd.read_csv(config.preprocessed_data_path)
             elec_df["date"] = pd.to_datetime(elec_df["date"])

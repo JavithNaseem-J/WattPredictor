@@ -118,6 +118,22 @@ class TestEIAClient:
         # Should return empty DataFrame, not crash
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 0
+
+    @patch('requests.get')
+    def test_fetch_day_http_error_does_not_log_api_key(self, mock_get, capsys):
+        """HTTP failures report status without leaking the query-string key."""
+        secret = "test-secret-key"
+        response = requests.Response()
+        response.status_code = 403
+        response.url = f"https://api.eia.gov/v2/data/?api_key={secret}"
+        mock_get.return_value = response
+
+        client = EIAClient(api_url="https://api.eia.gov/v2/data/", api_key=secret)
+        assert client.fetch_day(2025, 2, 15).empty
+        output = capsys.readouterr().out
+        assert client.last_error == "HTTP 403"
+        assert "HTTP 403" in output
+        assert secret not in output
     
     @patch('requests.get')
     def test_retry_on_transient_failure(self, mock_get):
