@@ -42,7 +42,7 @@ flowchart LR
 
 The feature pipeline joins EIA demand and Open-Meteo weather by UTC timestamp, checks missingness in selected columns, and writes a local CSV. Training forms 672-row demand windows per zone, adds calendar and temperature features, and selects between XGBoost and LightGBM with `GridSearchCV` and `TimeSeriesSplit`. It serializes the selected scikit-learn pipeline and logs tuning metadata to MLflow. A separate post-training step writes an Evidently drift report.
 
-The dashboard, `POST /predict`, and batch inference all call the same `Predictor`. It reads the saved model and preprocessed CSV, prepares one feature row per zone, and writes a predictions CSV. The dashboard also fetches current EIA and weather data for display; those live responses do **not** feed the predictor today.
+The dashboard, `POST /predict`, and batch inference all call the same `Predictor`. It reads the saved model and preprocessed CSV, prepares one feature row per zone, and writes a predictions CSV. The dashboard also fetches current EIA and weather data for display; those live responses do **not** feed the predictor today. In production, one Docker service routes `/` to Streamlit and `/api/` to FastAPI; `/version` exposes the deployed commit SHA and UTC image build time.
 
 ## Run locally
 
@@ -61,13 +61,14 @@ Run Streamlit and Uvicorn in separate terminals. The dashboard uses `http://loca
 
 The read-only metric reproduction used the committed preprocessed CSV, saved joblib model, and the feature construction in `src/WattPredictor/utils/ts_generator.py`. It applied the split and metrics from `src/WattPredictor/components/training/evaluator.py`; the recomputed values matched the JSON artifact exactly. No model fitting, API call, or application launch was needed for that check.
 
-Six pytest files cover feature generation, model fit and serialization, mocked API clients, configuration basics, and endpoint response shapes. The full suite was not run during this documentation update. `dvc.yaml` defines data preparation, training, and prediction stages, but its lockfile and one declared output differ from current code and configuration.
+Six pytest files cover feature generation, model fit and serialization, mocked API clients, configuration basics, and endpoint response shapes. `dvc.yaml` defines data preparation, training, and prediction stages, but its lockfile and one declared output differ from current code and configuration.
+
 
 ## Limits
 
 - **Forecast freshness:** the tracked feature dataset ends in February 2026. Inference caps history at its last row, reuses that row's temperature and calendar fields, and stamps output with the current UTC hour. The dashboard labels the next Eastern hour. A fresh Open-Meteo response is fetched, but it is not passed into inference.
 - **Evaluation scope:** offline features include temperature observed at each target hour, whereas serving uses the last stored temperature. The holdout score therefore does not validate the deployed forecast path. The saved CSV contains 4,004 duplicate zone-hour rows, so a 672-row window is not always four weeks. The evaluator's hard-coded 10% comparison is not a measured baseline and is excluded here.
-- **Operations:** the weekly GitHub Actions schedule runs tests and an import check; it does not retrain or publish a model. The monitoring CSV has no matched records. `GET /health` checks model-file existence, and the API has no authentication or rate limiting.
+- **Operations:** CI validates code and the production image; it does not retrain or publish a model. The monitoring CSV has no matched records. `GET /api/health` checks model-file existence, `/healthz` also checks the dashboard, and the API has no authentication or rate limiting.
 
 ## FutureWork
 

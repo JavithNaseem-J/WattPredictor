@@ -42,7 +42,6 @@ notebooks/
 
 # Artifacts - exclude raw data, keep model
 data/raw/
-artifacts/evaluation/
 artifacts/validation/
 artifacts/prediction/
 

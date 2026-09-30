@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Backend lint, format, and types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.15"
+      - run: uv sync --frozen
+      - run: uv pip install --python .venv/bin/python black==24.10.0 flake8==7.3.0 mypy==1.20.2
+      - name: Formatting
+        run: uv run --no-sync black --check src/WattPredictor/api/main.py .github/scripts/verify_deployment.py tests/test_deployment_verification.py
+      - name: Lint backend syntax and undefined names
+        run: uv run --no-sync flake8 src app.py tests --select=E9,F63,F7,F82 --show-source
+      - name: Static type analysis
+        run: uv run --no-sync mypy src/WattPredictor/api/main.py .github/scripts/verify_deployment.py --follow-imports=skip --ignore-missing-imports
+
+  unit:
+    name: Backend unit tests
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.15"
+      - run: uv sync --frozen
+      - run: uv run --no-sync pytest -o pythonpath=src tests/test_api_client.py tests/test_api_endpoints.py tests/test_basic.py tests/test_features.py tests/test_models.py tests/test_deployment_verification.py -q
+
+  integration:
+    name: Backend integration tests
+    needs: unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.15"
+      - run: uv sync --frozen
+      - run: uv run --no-sync pytest -o pythonpath=src tests/test_integration.py -q
+
+  container:
+    name: Production container smoke test
+    needs: integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build production image with commit metadata
+        run: docker build --build-arg COMMIT_SHA="$GITHUB_SHA" --build-arg RENDER_GIT_COMMIT="$GITHUB_SHA" -t wattpredictor:ci .
+      - name: Start built image
+        run: docker run --detach --name wattpredictor-ci --publish 127.0.0.1:18080:10000 --env PORT=10000 wattpredictor:ci
+      - name: Check health, frontend, API, and build identity
+        shell: bash
+        run: |
+          for attempt in {1..90}; do
+            if curl --fail --silent http://127.0.0.1:18080/healthz > /dev/null; then
+              break
+            fi
+            if (( attempt == 90 )); then
+              docker logs wattpredictor-ci
+              exit 1
+            fi
+            sleep 5
+          done
+          curl --fail --silent http://127.0.0.1:18080/ -o /tmp/frontend.html
+          grep -qi 'streamlit' /tmp/frontend.html
+          curl --fail --silent http://127.0.0.1:18080/api/health -o /tmp/api-health.json
+          jq -e '.status == "healthy" and .model_loaded == true' /tmp/api-health.json
+          curl --fail --silent http://127.0.0.1:18080/api/metrics -o /tmp/metrics.json
+          jq -e 'has("mae") and has("rmse")' /tmp/metrics.json
+          curl --fail --silent http://127.0.0.1:18080/version -o /tmp/version.json
+          jq -e --arg sha "$GITHUB_SHA" '.commit_sha == $sha and (.build_time | length > 0)' /tmp/version.json
+          test "$(docker inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' wattpredictor-ci)" = "$GITHUB_SHA"
+      - name: Clean up test container
+        if: always()
+        run: docker rm --force wattpredictor-ci 2>/dev/null || true

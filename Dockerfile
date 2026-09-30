@@ -1,56 +1,40 @@
-# Stage 1: Builder
 FROM python:3.12-slim AS builder
-
-# Install uv for ultra-fast package installation
-RUN pip install --no-cache-dir uv
-
+RUN pip install --no-cache-dir uv==0.11.15
 WORKDIR /build
+COPY pyproject.toml uv.lock ./
+RUN uv export --frozen --no-dev --no-emit-project --no-hashes -o /tmp/requirements.lock \
+    && uv pip install --prefix=/install --no-cache -r /tmp/requirements.lock
 
-# Copy dependency definition files for deterministic installation
-COPY pyproject.toml uv.lock* requirements.txt ./
-
-# Install packages into /install prefix using uv
-RUN uv pip install --prefix=/install --no-cache -r pyproject.toml
-
-# Stage 2: Runtime
 FROM python:3.12-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
+ARG COMMIT_SHA=unknown
+ARG RENDER_GIT_COMMIT=unknown
+LABEL org.opencontainers.image.revision=$COMMIT_SHA
+ENV BUILD_COMMIT_SHA=$COMMIT_SHA \
+    PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app/src:/app
 
-WORKDIR /app
-
-# Install runtime system dependencies (curl for healthcheck, libgomp1 for LightGBM OpenMP)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    libgomp1 \
+    curl gettext-base libgomp1 nginx \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy installed packages from builder
+WORKDIR /app
 COPY --from=builder /install /usr/local
-
-# Copy application code and model artifacts
 COPY src/ src/
-COPY app.py .
+COPY app.py ./
 COPY config_file/ config_file/
 COPY artifacts/ artifacts/
+COPY deploy/ deploy/
 
-# Create necessary directories
-RUN mkdir -p artifacts/trainer artifacts/engineering artifacts/prediction \
-    logs data/processed data/raw/elec_data data/raw/wx_data
+# Render supplies the deployed commit at runtime; the file records image build time.
+RUN printf '%s' "$RENDER_GIT_COMMIT" > /app/render_build_commit.txt \
+    && python -c "from datetime import datetime, timezone; from pathlib import Path; Path('/app/build_time.txt').write_text(datetime.now(timezone.utc).isoformat())" \
+    && mkdir -p artifacts/trainer artifacts/engineering artifacts/prediction logs data/processed data/raw/elec_data data/raw/wx_data \
+    && useradd --create-home --shell /bin/bash appuser \
+    && chown -R appuser:appuser /app
 
-# Create non-root user for security
-RUN useradd --create-home --shell /bin/bash appuser && \
-    chown -R appuser:appuser /app
 USER appuser
-
-# Expose Streamlit port
-EXPOSE 8501
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8501}/_stcore/health || exit 1
-
-# Run Streamlit dashboard (supports dynamic $PORT from cloud hosters like Render)
-CMD ["sh", "-c", "streamlit run app.py --server.port=${PORT:-8501} --server.address=0.0.0.0 --server.headless=true"]
+EXPOSE 10000
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
+    CMD curl --fail --silent http://127.0.0.1:${PORT:-10000}/healthz > /dev/null || exit 1
+CMD ["bash", "/app/deploy/start.sh"]

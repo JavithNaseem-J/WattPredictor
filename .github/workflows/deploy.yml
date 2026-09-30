@@ -1,0 +1,134 @@
+name: Deploy to Render
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Full 40-character main-branch commit SHA (blank uses current main)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  resolve:
+    name: Verify deployable commit
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch'))
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - id: commit
+        name: Check out and resolve exact SHA
+        shell: bash
+        env:
+          REQUESTED_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.commit_sha }}
+        run: |
+          sha="$REQUESTED_SHA"
+          if [[ -z "$sha" ]]; then
+            sha="$(git rev-parse origin/main)"
+          fi
+          if [[ ! "$sha" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "Expected a full 40-character commit SHA" >&2
+            exit 1
+          fi
+          git cat-file -e "${sha}^{commit}"
+          git merge-base --is-ancestor "$sha" origin/main
+          git checkout --detach "$sha"
+          resolved="$(git rev-parse HEAD)"
+          if [[ ! "$resolved" =~ ^[0-9a-fA-F]{40}$ ]] || [[ "${resolved,,}" != "${sha,,}" ]]; then
+            echo "Checked-out commit does not match requested SHA" >&2
+            exit 1
+          fi
+          echo "sha=$resolved" >> "$GITHUB_OUTPUT"
+      - name: Verify manual commit passed CI
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          runs="$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
+            -f head_sha="$DEPLOY_SHA" -f branch=main -f status=completed -f per_page=100)"
+          printf '%s' "$runs" | jq -e --arg sha "$DEPLOY_SHA" \
+            '[.workflow_runs[] | select(.head_sha == $sha and .head_branch == "main" and .conclusion == "success" and (.event == "push" or .event == "workflow_dispatch"))] | length > 0'
+
+  deploy:
+    name: Deploy verified SHA
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: wattpredictor-production
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: https://wattpredictor-dashboard.onrender.com/
+    env:
+      DEPLOY_SHA: ${{ needs.resolve.outputs.sha }}
+      PRODUCTION_URL: ${{ vars.RENDER_PRODUCTION_URL || 'https://wattpredictor-dashboard.onrender.com' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - name: Recheck deployment checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
+      - name: Initialize verification report
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          report = {
+              "expected_sha": os.environ["DEPLOY_SHA"],
+              "production_url": os.environ["PRODUCTION_URL"],
+              "status": "deploy_hook_not_completed",
+              "checked_at": datetime.now(timezone.utc).isoformat(),
+          }
+          Path("deployment-verification.json").write_text(json.dumps(report, indent=2) + "\n")
+          PY
+      - name: Trigger exact commit on Render
+        shell: bash
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [[ -z "$RENDER_DEPLOY_HOOK_URL" || "$RENDER_DEPLOY_HOOK_URL" != https://* ]]; then
+            echo "RENDER_DEPLOY_HOOK_URL must be configured as an HTTPS secret" >&2
+            exit 1
+          fi
+          code="$(curl --silent --show-error --max-time 30 --output /tmp/render-deploy-response.json \
+            --write-out '%{http_code}' --get --data-urlencode "ref=$DEPLOY_SHA" "$RENDER_DEPLOY_HOOK_URL")"
+          if [[ ! "$code" =~ ^2[0-9][0-9]$ ]]; then
+            echo "Render deploy hook returned HTTP $code" >&2
+            exit 1
+          fi
+      - name: Verify live commit and application
+        run: python .github/scripts/verify_deployment.py "$PRODUCTION_URL" "$DEPLOY_SHA" deployment-verification.json
+      - name: Upload deployment verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-verification-${{ needs.resolve.outputs.sha }}
+          path: deployment-verification.json
+          if-no-files-found: warn
