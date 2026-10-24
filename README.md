@@ -17,7 +17,7 @@ The saved XGBoost model was scored against the stored preprocessed dataset using
 | MAE | 34.95 MW |
 | RMSE | 59.87 MW |
 | MAPE | 2.12% |
-| R² | 0.99844 |
+| R² | 0.90844 |
 
 
 
